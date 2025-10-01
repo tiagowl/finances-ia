@@ -13,8 +13,6 @@ export default function Dashboard() {
 
   const totalIncomes = getTotalIncomes()
   const totalExpenses = getTotalExpenses()
-  const totalMonthlyIncomes = getTotalMonthlyIncomes()
-  const totalMonthlyExpenses = getTotalMonthlyExpenses()
   const balance = totalIncomes - totalExpenses
 
   // Get recent transactions (last 5)
