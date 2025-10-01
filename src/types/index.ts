@@ -1,0 +1,58 @@
+export interface Transaction {
+  id: string
+  type: 'income' | 'expense'
+  category: string
+  description: string
+  amount: number
+  isFixed: boolean
+  date: string
+  notes?: string
+}
+
+export interface MonthlyIncome {
+  id: string
+  name: string
+  amount: number
+  lastReceivedDate: string
+  nextReceivedDate: string
+  isActive: boolean
+}
+
+export interface MonthlyExpense {
+  id: string
+  name: string
+  amount: number
+  lastChargedDate: string
+  nextChargedDate: string
+  cancellationLink: string
+  isActive: boolean
+}
+
+export interface Category {
+  id: string
+  name: string
+  budget: number
+  maxBudget: number
+  color: string
+}
+
+export interface Wish {
+  id: string
+  name: string
+  estimatedPrice: number
+  category: string
+  priority: string
+  status: string
+  targetDate: string
+  purchaseLink: string
+  notes?: string
+}
+
+export interface Notification {
+  id: string
+  title: string
+  message: string
+  type: 'info' | 'warning' | 'success' | 'error'
+  timestamp: string
+  isRead: boolean
+}

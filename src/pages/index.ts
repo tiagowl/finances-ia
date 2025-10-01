@@ -1,0 +1,7 @@
+export { default as Dashboard } from './Dashboard'
+export { default as Incomes } from './Incomes'
+export { default as Expenses } from './Expenses'
+export { default as MonthlyIncomes } from './MonthlyIncomes'
+export { default as MonthlyExpenses } from './MonthlyExpenses'
+export { default as Categories } from './Categories'
+export { default as Wishes } from './Wishes'
