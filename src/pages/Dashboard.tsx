@@ -6,8 +6,6 @@ export default function Dashboard() {
   const {
     getTotalIncomes,
     getTotalExpenses,
-    getTotalMonthlyIncomes,
-    getTotalMonthlyExpenses,
     transactions
   } = useFinance()
 

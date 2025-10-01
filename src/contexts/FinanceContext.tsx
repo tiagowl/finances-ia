@@ -27,32 +27,21 @@ interface FinanceContextType {
   
   // Transaction methods
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void
-  updateTransaction: (id: string, transaction: Partial<Transaction>) => void
-  deleteTransaction: (id: string) => void
   
   // Monthly Income methods
   addMonthlyIncome: (monthlyIncome: Omit<MonthlyIncome, 'id'>) => void
-  updateMonthlyIncome: (id: string, monthlyIncome: Partial<MonthlyIncome>) => void
-  deleteMonthlyIncome: (id: string) => void
   
   // Monthly Expense methods
   addMonthlyExpense: (monthlyExpense: Omit<MonthlyExpense, 'id'>) => void
-  updateMonthlyExpense: (id: string, monthlyExpense: Partial<MonthlyExpense>) => void
-  deleteMonthlyExpense: (id: string) => void
   
   // Category methods
   addCategory: (category: Omit<Category, 'id'>) => void
-  updateCategory: (id: string, category: Partial<Category>) => void
-  deleteCategory: (id: string) => void
   
   // Wish methods
   addWish: (wish: Omit<Wish, 'id'>) => void
-  updateWish: (id: string, wish: Partial<Wish>) => void
-  deleteWish: (id: string) => void
   
   // Notification methods
   addNotification: (notification: Omit<Notification, 'id'>) => void
-  updateNotification: (id: string, notification: Partial<Notification>) => void
   deleteNotification: (id: string) => void
   markNotificationAsRead: (id: string) => void
   markAllNotificationsAsRead: () => void
@@ -132,13 +121,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setTransactions(prev => [...prev, newTransaction])
   }
 
-  const updateTransaction = (id: string, transaction: Partial<Transaction>) => {
-    setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...transaction } : t))
-  }
 
-  const deleteTransaction = (id: string) => {
-    setTransactions(prev => prev.filter(t => t.id !== id))
-  }
 
   // Monthly Income methods
   const addMonthlyIncome = (monthlyIncome: Omit<MonthlyIncome, 'id'>) => {
@@ -149,13 +132,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setMonthlyIncomes(prev => [...prev, newMonthlyIncome])
   }
 
-  const updateMonthlyIncome = (id: string, monthlyIncome: Partial<MonthlyIncome>) => {
-    setMonthlyIncomes(prev => prev.map(mi => mi.id === id ? { ...mi, ...monthlyIncome } : mi))
-  }
 
-  const deleteMonthlyIncome = (id: string) => {
-    setMonthlyIncomes(prev => prev.filter(mi => mi.id !== id))
-  }
 
   // Monthly Expense methods
   const addMonthlyExpense = (monthlyExpense: Omit<MonthlyExpense, 'id'>) => {
@@ -166,13 +143,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setMonthlyExpenses(prev => [...prev, newMonthlyExpense])
   }
 
-  const updateMonthlyExpense = (id: string, monthlyExpense: Partial<MonthlyExpense>) => {
-    setMonthlyExpenses(prev => prev.map(me => me.id === id ? { ...me, ...monthlyExpense } : me))
-  }
 
-  const deleteMonthlyExpense = (id: string) => {
-    setMonthlyExpenses(prev => prev.filter(me => me.id !== id))
-  }
 
   // Category methods
   const addCategory = (category: Omit<Category, 'id'>) => {
@@ -183,13 +154,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setCategories(prev => [...prev, newCategory])
   }
 
-  const updateCategory = (id: string, category: Partial<Category>) => {
-    setCategories(prev => prev.map(c => c.id === id ? { ...c, ...category } : c))
-  }
 
-  const deleteCategory = (id: string) => {
-    setCategories(prev => prev.filter(c => c.id !== id))
-  }
 
   // Wish methods
   const addWish = (wish: Omit<Wish, 'id'>) => {
@@ -200,13 +165,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setWishes(prev => [...prev, newWish])
   }
 
-  const updateWish = (id: string, wish: Partial<Wish>) => {
-    setWishes(prev => prev.map(w => w.id === id ? { ...w, ...wish } : w))
-  }
 
-  const deleteWish = (id: string) => {
-    setWishes(prev => prev.filter(w => w.id !== id))
-  }
 
   // Notification methods
   const addNotification = (notification: Omit<Notification, 'id'>) => {
@@ -217,16 +176,13 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setNotifications(prev => [...prev, newNotification])
   }
 
-  const updateNotification = (id: string, notification: Partial<Notification>) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, ...notification } : n))
-  }
 
   const deleteNotification = (id: string) => {
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
   const markNotificationAsRead = (id: string) => {
-    updateNotification(id, { isRead: true })
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n))
   }
 
   const markAllNotificationsAsRead = () => {
@@ -277,32 +233,21 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     
     // Transaction methods
     addTransaction,
-    updateTransaction,
-    deleteTransaction,
     
     // Monthly Income methods
     addMonthlyIncome,
-    updateMonthlyIncome,
-    deleteMonthlyIncome,
     
     // Monthly Expense methods
     addMonthlyExpense,
-    updateMonthlyExpense,
-    deleteMonthlyExpense,
     
     // Category methods
     addCategory,
-    updateCategory,
-    deleteCategory,
     
     // Wish methods
     addWish,
-    updateWish,
-    deleteWish,
     
     // Notification methods
     addNotification,
-    updateNotification,
     deleteNotification,
     markNotificationAsRead,
     markAllNotificationsAsRead,
