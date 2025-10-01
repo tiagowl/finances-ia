@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Plus, TrendingUp } from "lucide-react"
 import { Transaction } from "@/types"
+import { useFinance } from "@/contexts/FinanceContext"
 
 // Schema de validação para o formulário de receita
 const incomeFormSchema = z.object({
@@ -37,52 +38,6 @@ const incomeFormSchema = z.object({
 
 type IncomeFormValues = z.infer<typeof incomeFormSchema>
 
-// Dados de exemplo para receitas
-const sampleIncomes: Transaction[] = [
-  {
-    id: '1',
-    type: 'income',
-    category: 'Salário',
-    description: 'Salário mensal',
-    amount: 5000.00,
-    isFixed: true,
-    date: '2024-01-15',
-    notes: 'Salário base'
-  },
-  {
-    id: '2',
-    type: 'income',
-    category: 'Freelance',
-    description: 'Projeto de desenvolvimento web',
-    amount: 1200.00,
-    isFixed: false,
-    date: '2024-01-20',
-    notes: 'Projeto concluído'
-  },
-  {
-    id: '3',
-    type: 'income',
-    category: 'Investimentos',
-    description: 'Dividendos de ações',
-    amount: 350.00,
-    isFixed: false,
-    date: '2024-01-25',
-    notes: 'Portfolio diversificado'
-  },
-  {
-    id: '4',
-    type: 'income',
-    category: 'Vendas',
-    description: 'Venda de produto digital',
-    amount: 180.00,
-    isFixed: false,
-    date: '2024-01-28',
-    notes: 'E-book sobre finanças'
-  }
-]
-
-// Calcular total das receitas
-const totalIncomes = sampleIncomes.reduce((sum, income) => sum + income.amount, 0)
 
 // Definições de colunas para as tabelas
 const incomesColumns: ColumnDef<Transaction>[] = [
@@ -136,6 +91,11 @@ const incomesColumns: ColumnDef<Transaction>[] = [
 
 export default function Incomes() {
   const [isIncomeSheetOpen, setIsIncomeSheetOpen] = useState(false)
+  const { transactions, addTransaction, getTotalIncomes } = useFinance()
+
+  // Filter only income transactions
+  const incomeTransactions = transactions.filter(t => t.type === 'income')
+  const totalIncomes = getTotalIncomes()
 
   // Formulário de receita
   const incomeForm = useForm<IncomeFormValues>({
@@ -149,8 +109,15 @@ export default function Incomes() {
 
   // Função para submeter o formulário de receita
   const onSubmitIncome = (values: IncomeFormValues) => {
-    console.log("Nova receita:", values)
-    // Aqui você pode adicionar a lógica para salvar a receita
+    addTransaction({
+      type: 'income',
+      category: 'Receita',
+      description: values.name,
+      amount: parseFloat(values.amount),
+      isFixed: false,
+      date: values.date,
+      notes: ''
+    })
     incomeForm.reset()
     setIsIncomeSheetOpen(false)
   }
@@ -256,7 +223,7 @@ export default function Incomes() {
             R$ {totalIncomes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-muted-foreground">
-            {sampleIncomes.length} receita(s) cadastrada(s)
+            {incomeTransactions.length} receita(s) cadastrada(s)
           </p>
         </CardContent>
       </Card>
@@ -272,7 +239,7 @@ export default function Incomes() {
         <CardContent>
           <DataTable 
             columns={incomesColumns} 
-            data={sampleIncomes} 
+            data={incomeTransactions} 
             searchKey="description"
             searchPlaceholder="Buscar receitas..."
           />

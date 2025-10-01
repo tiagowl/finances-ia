@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Plus, CalendarDays } from "lucide-react"
 import { MonthlyExpense } from "@/types"
+import { useFinance } from "@/contexts/FinanceContext"
 
 // Schema de validação para o formulário de despesa mensal
 const monthlyExpenseFormSchema = z.object({
@@ -37,57 +38,6 @@ const monthlyExpenseFormSchema = z.object({
 
 type MonthlyExpenseFormValues = z.infer<typeof monthlyExpenseFormSchema>
 
-// Dados de exemplo para despesas mensais
-const sampleMonthlyExpenses: MonthlyExpense[] = [
-  {
-    id: '21',
-    name: 'Netflix',
-    amount: 45.90,
-    lastChargedDate: '2024-01-15',
-    nextChargedDate: '2024-02-15',
-    cancellationLink: 'https://www.netflix.com/cancelplan',
-    isActive: true
-  },
-  {
-    id: '22',
-    name: 'Spotify Premium',
-    amount: 21.90,
-    lastChargedDate: '2024-01-10',
-    nextChargedDate: '2024-02-10',
-    cancellationLink: 'https://www.spotify.com/account/subscription/',
-    isActive: true
-  },
-  {
-    id: '23',
-    name: 'Amazon Prime',
-    amount: 14.90,
-    lastChargedDate: '2024-01-05',
-    nextChargedDate: '2024-02-05',
-    cancellationLink: 'https://www.amazon.com/gp/primecentral',
-    isActive: true
-  },
-  {
-    id: '24',
-    name: 'Microsoft 365',
-    amount: 39.90,
-    lastChargedDate: '2024-01-12',
-    nextChargedDate: '2024-02-12',
-    cancellationLink: 'https://account.microsoft.com/services',
-    isActive: true
-  },
-  {
-    id: '25',
-    name: 'Adobe Creative Cloud',
-    amount: 89.90,
-    lastChargedDate: '2024-01-08',
-    nextChargedDate: '2024-02-08',
-    cancellationLink: 'https://www.adobe.com/account.html',
-    isActive: false
-  }
-]
-
-// Calcular total das despesas mensais
-const totalMonthlyExpenses = sampleMonthlyExpenses.reduce((sum, expense) => sum + expense.amount, 0)
 
 // Definições de colunas para as tabelas
 const monthlyExpensesColumns: ColumnDef<MonthlyExpense>[] = [
@@ -150,6 +100,9 @@ const monthlyExpensesColumns: ColumnDef<MonthlyExpense>[] = [
 
 export default function MonthlyExpenses() {
   const [isMonthlyExpenseSheetOpen, setIsMonthlyExpenseSheetOpen] = useState(false)
+  const { monthlyExpenses, addMonthlyExpense, getTotalMonthlyExpenses } = useFinance()
+
+  const totalMonthlyExpenses = getTotalMonthlyExpenses()
 
   // Formulário de despesa mensal
   const monthlyExpenseForm = useForm<MonthlyExpenseFormValues>({
@@ -163,8 +116,19 @@ export default function MonthlyExpenses() {
 
   // Função para submeter o formulário de despesa mensal
   const onSubmitMonthlyExpense = (values: MonthlyExpenseFormValues) => {
-    console.log("Nova despesa mensal:", values)
-    // Aqui você pode adicionar a lógica para salvar a despesa mensal
+    const today = new Date().toISOString().split('T')[0]
+    const nextMonth = new Date()
+    nextMonth.setMonth(nextMonth.getMonth() + 1)
+    const nextMonthStr = nextMonth.toISOString().split('T')[0]
+
+    addMonthlyExpense({
+      name: values.name,
+      amount: parseFloat(values.amount),
+      lastChargedDate: today,
+      nextChargedDate: nextMonthStr,
+      cancellationLink: values.cancellationLink,
+      isActive: true
+    })
     monthlyExpenseForm.reset()
     setIsMonthlyExpenseSheetOpen(false)
   }
@@ -274,7 +238,7 @@ export default function MonthlyExpenses() {
             R$ {totalMonthlyExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-muted-foreground">
-            {sampleMonthlyExpenses.length} despesa(s) mensal(is) cadastrada(s)
+            {monthlyExpenses.length} despesa(s) mensal(is) cadastrada(s)
           </p>
         </CardContent>
       </Card>
@@ -290,7 +254,7 @@ export default function MonthlyExpenses() {
         <CardContent>
           <DataTable
             columns={monthlyExpensesColumns} 
-            data={sampleMonthlyExpenses} 
+            data={monthlyExpenses} 
             searchKey="name"
             searchPlaceholder="Buscar despesas mensais..."
           />

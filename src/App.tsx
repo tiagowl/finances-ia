@@ -45,35 +45,20 @@ import {
   Categories,
   Wishes
 } from "@/pages"
-import { Notification } from "@/types"
+import { FinanceProvider, useFinance } from "@/contexts/FinanceContext"
 
 
-function App() {
+function AppContent() {
   const [currentPage, setCurrentPage] = useState('dashboard')
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const { 
+    notifications, 
+    markNotificationAsRead, 
+    markAllNotificationsAsRead, 
+    deleteNotification,
+    getUnreadNotificationsCount 
+  } = useFinance()
 
-  // Funções para gerenciar notificações
-  const unreadNotificationsCount = notifications.filter(n => !n.isRead).length
-
-  const markAsRead = (notificationId: string) => {
-    setNotifications(prev => 
-      prev.map(notification => 
-        notification.id === notificationId 
-          ? { ...notification, isRead: true }
-          : notification
-      )
-    )
-  }
-
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notification => ({ ...notification, isRead: true }))
-    )
-  }
-
-  const removeNotification = (notificationId: string) => {
-    setNotifications(prev => prev.filter(n => n.id !== notificationId))
-  }
+  const unreadNotificationsCount = getUnreadNotificationsCount()
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
@@ -86,55 +71,6 @@ function App() {
       default:
         return <Info className="h-4 w-4 text-blue-600" />
     }
-  }
-
-  // Dados de exemplo para notificações
-  const sampleNotifications: Notification[] = [
-    {
-      id: '1',
-      title: 'Orçamento Excedido',
-      message: 'Você excedeu o orçamento da categoria "Jogos" em R$ 34,90',
-      type: 'warning',
-      timestamp: '2024-01-15T10:30:00',
-      isRead: false
-    },
-    {
-      id: '2',
-      title: 'Receita Recebida',
-      message: 'Salário de R$ 5.000,00 foi creditado na sua conta',
-      type: 'success',
-      timestamp: '2024-01-15T09:00:00',
-      isRead: false
-    },
-    {
-      id: '3',
-      title: 'Cobrança Automática',
-      message: 'Netflix será cobrado em 2 dias (R$ 45,90)',
-      type: 'info',
-      timestamp: '2024-01-14T16:45:00',
-      isRead: true
-    },
-    {
-      id: '4',
-      title: 'Meta Atingida',
-      message: 'Parabéns! Você atingiu 80% da sua meta de economia mensal',
-      type: 'success',
-      timestamp: '2024-01-14T14:20:00',
-      isRead: true
-    },
-    {
-      id: '5',
-      title: 'Cartão Vencendo',
-      message: 'Seu cartão de crédito vence em 5 dias',
-      type: 'error',
-      timestamp: '2024-01-13T11:15:00',
-      isRead: false
-    }
-  ]
-
-  // Inicializar notificações com dados de exemplo
-  if (notifications.length === 0) {
-    setNotifications(sampleNotifications)
   }
 
 
@@ -327,7 +263,7 @@ function App() {
                     <Button 
                       variant="ghost" 
                       size="sm" 
-                      onClick={markAllAsRead}
+                      onClick={markAllNotificationsAsRead}
                       className="text-xs"
                     >
                       Marcar todas como lidas
@@ -371,7 +307,7 @@ function App() {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => markAsRead(notification.id)}
+                                    onClick={() => markNotificationAsRead(notification.id)}
                                     className="h-6 w-6 p-0"
                                   >
                                     <CheckCircle className="h-3 w-3" />
@@ -380,7 +316,7 @@ function App() {
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  onClick={() => removeNotification(notification.id)}
+                                  onClick={() => deleteNotification(notification.id)}
                                   className="h-6 w-6 p-0"
                                 >
                                   <X className="h-3 w-3" />
@@ -401,6 +337,14 @@ function App() {
         {renderContent()}
       </SidebarInset>
     </SidebarProvider>
+  )
+}
+
+function App() {
+  return (
+    <FinanceProvider>
+      <AppContent />
+    </FinanceProvider>
   )
 }
 

@@ -32,6 +32,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Plus, TrendingDown } from "lucide-react"
 import { Transaction } from "@/types"
+import { useFinance } from "@/contexts/FinanceContext"
 
 // Schema de validação para o formulário de despesa
 const expenseFormSchema = z.object({
@@ -45,101 +46,6 @@ const expenseFormSchema = z.object({
 
 type ExpenseFormValues = z.infer<typeof expenseFormSchema>
 
-// Dados de exemplo para despesas
-const sampleExpenses: Transaction[] = [
-  {
-    id: '5',
-    type: 'expense',
-    category: 'Jogos',
-    description: 'Steam - Jogos em promoção',
-    amount: 89.90,
-    isFixed: false,
-    date: '2024-01-10',
-    notes: 'Promoção de inverno'
-  },
-  {
-    id: '6',
-    type: 'expense',
-    category: 'Jogos',
-    description: 'PlayStation Plus',
-    amount: 45.00,
-    isFixed: true,
-    date: '2024-01-15',
-    notes: 'Assinatura mensal'
-  },
-  {
-    id: '7',
-    type: 'expense',
-    category: 'Alimentação',
-    description: 'Supermercado',
-    amount: 320.50,
-    isFixed: false,
-    date: '2024-01-12',
-    notes: 'Compras da semana'
-  },
-  {
-    id: '8',
-    type: 'expense',
-    category: 'Alimentação',
-    description: 'Padaria',
-    amount: 45.80,
-    isFixed: false,
-    date: '2024-01-18',
-    notes: 'Pão e café da manhã'
-  },
-  {
-    id: '9',
-    type: 'expense',
-    category: 'Refeição',
-    description: 'Restaurante',
-    amount: 85.00,
-    isFixed: false,
-    date: '2024-01-20',
-    notes: 'Jantar com amigos'
-  },
-  {
-    id: '10',
-    type: 'expense',
-    category: 'Refeição',
-    description: 'Delivery',
-    amount: 32.90,
-    isFixed: false,
-    date: '2024-01-22',
-    notes: 'Ifood - Pizza'
-  },
-  {
-    id: '11',
-    type: 'expense',
-    category: 'Refeição',
-    description: 'Café',
-    amount: 12.50,
-    isFixed: false,
-    date: '2024-01-25',
-    notes: 'Café da tarde'
-  },
-  {
-    id: '12',
-    type: 'expense',
-    category: 'Transporte',
-    description: 'Uber',
-    amount: 25.00,
-    isFixed: false,
-    date: '2024-01-28',
-    notes: 'Viagem para o centro'
-  }
-]
-
-// Calcular totais das despesas por categoria
-const totalExpenses = sampleExpenses.reduce((sum, expense) => sum + expense.amount, 0)
-const totalGamesExpenses = sampleExpenses
-  .filter(expense => expense.category === 'Jogos')
-  .reduce((sum, expense) => sum + expense.amount, 0)
-const totalFoodExpenses = sampleExpenses
-  .filter(expense => expense.category === 'Alimentação')
-  .reduce((sum, expense) => sum + expense.amount, 0)
-const totalMealExpenses = sampleExpenses
-  .filter(expense => expense.category === 'Refeição')
-  .reduce((sum, expense) => sum + expense.amount, 0)
 
 // Definições de colunas para as tabelas
 const expensesColumns: ColumnDef<Transaction>[] = [
@@ -204,6 +110,22 @@ const expensesColumns: ColumnDef<Transaction>[] = [
 
 export default function Expenses() {
   const [isExpenseSheetOpen, setIsExpenseSheetOpen] = useState(false)
+  const { transactions, addTransaction, getTotalExpenses } = useFinance()
+
+  // Filter only expense transactions
+  const expenseTransactions = transactions.filter(t => t.type === 'expense')
+  const totalExpenses = getTotalExpenses()
+
+  // Calculate expenses by category
+  const totalGamesExpenses = expenseTransactions
+    .filter(expense => expense.category === 'Jogos')
+    .reduce((sum, expense) => sum + expense.amount, 0)
+  const totalFoodExpenses = expenseTransactions
+    .filter(expense => expense.category === 'Alimentação')
+    .reduce((sum, expense) => sum + expense.amount, 0)
+  const totalMealExpenses = expenseTransactions
+    .filter(expense => expense.category === 'Refeição')
+    .reduce((sum, expense) => sum + expense.amount, 0)
 
   // Formulário de despesa
   const expenseForm = useForm<ExpenseFormValues>({
@@ -218,8 +140,15 @@ export default function Expenses() {
 
   // Função para submeter o formulário de despesa
   const onSubmitExpense = (values: ExpenseFormValues) => {
-    console.log("Nova despesa:", values)
-    // Aqui você pode adicionar a lógica para salvar a despesa
+    addTransaction({
+      type: 'expense',
+      category: values.category,
+      description: values.name,
+      amount: parseFloat(values.amount),
+      isFixed: false,
+      date: values.date,
+      notes: ''
+    })
     expenseForm.reset()
     setIsExpenseSheetOpen(false)
   }
@@ -354,7 +283,7 @@ export default function Expenses() {
               R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleExpenses.length} despesa(s) cadastrada(s)
+              {expenseTransactions.length} despesa(s) cadastrada(s)
             </p>
           </CardContent>
         </Card>
@@ -372,7 +301,7 @@ export default function Expenses() {
               R$ {totalGamesExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleExpenses.filter(e => e.category === 'Jogos').length} despesa(s) em jogos
+              {expenseTransactions.filter(e => e.category === 'Jogos').length} despesa(s) em jogos
             </p>
           </CardContent>
         </Card>
@@ -390,7 +319,7 @@ export default function Expenses() {
               R$ {totalFoodExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleExpenses.filter(e => e.category === 'Alimentação').length} despesa(s) em alimentação
+              {expenseTransactions.filter(e => e.category === 'Alimentação').length} despesa(s) em alimentação
             </p>
           </CardContent>
         </Card>
@@ -408,7 +337,7 @@ export default function Expenses() {
               R$ {totalMealExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleExpenses.filter(e => e.category === 'Refeição').length} despesa(s) em refeição
+              {expenseTransactions.filter(e => e.category === 'Refeição').length} despesa(s) em refeição
             </p>
           </CardContent>
         </Card>
@@ -425,7 +354,7 @@ export default function Expenses() {
         <CardContent>
           <DataTable 
             columns={expensesColumns} 
-            data={sampleExpenses} 
+            data={expenseTransactions} 
             searchKey="description"
             searchPlaceholder="Buscar despesas..."
           />

@@ -1,7 +1,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DollarSign, TrendingUp, Wallet } from "lucide-react"
+import { useFinance } from "@/contexts/FinanceContext"
 
 export default function Dashboard() {
+  const {
+    getTotalIncomes,
+    getTotalExpenses,
+    getTotalMonthlyIncomes,
+    getTotalMonthlyExpenses,
+    transactions
+  } = useFinance()
+
+  const totalIncomes = getTotalIncomes()
+  const totalExpenses = getTotalExpenses()
+  const totalMonthlyIncomes = getTotalMonthlyIncomes()
+  const totalMonthlyExpenses = getTotalMonthlyExpenses()
+  const balance = totalIncomes - totalExpenses
+
+  // Get recent transactions (last 5)
+  const recentTransactions = transactions
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5)
   return (
     <div className="flex flex-1 flex-col gap-6 p-6">
       {/* Cards de Estatísticas */}
@@ -14,9 +33,11 @@ export default function Dashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 12.345,67</div>
+            <div className="text-2xl font-bold">
+              R$ {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +20.1% em relação ao mês passado
+              {balance >= 0 ? 'Saldo positivo' : 'Saldo negativo'}
             </p>
           </CardContent>
         </Card>
@@ -29,9 +50,11 @@ export default function Dashboard() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 8.500,00</div>
+            <div className="text-2xl font-bold text-green-600">
+              R$ {totalIncomes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
             <p className="text-xs text-muted-foreground">
-              +15.3% em relação ao mês passado
+              {transactions.filter(t => t.type === 'income').length} receita(s) cadastrada(s)
             </p>
           </CardContent>
         </Card>
@@ -44,9 +67,11 @@ export default function Dashboard() {
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R$ 3.200,00</div>
+            <div className="text-2xl font-bold text-red-600">
+              R$ {totalExpenses.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            </div>
             <p className="text-xs text-muted-foreground">
-              -5.2% em relação ao mês passado
+              {transactions.filter(t => t.type === 'expense').length} despesa(s) cadastrada(s)
             </p>
           </CardContent>
         </Card>
@@ -77,9 +102,27 @@ export default function Dashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-sm text-muted-foreground text-center py-4">
-                Navegue pelas páginas para visualizar suas transações
-              </p>
+              {recentTransactions.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">
+                  Nenhuma transação cadastrada ainda
+                </p>
+              ) : (
+                recentTransactions.map((transaction) => (
+                  <div key={transaction.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium">{transaction.description}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {new Date(transaction.date).toLocaleDateString('pt-BR')}
+                      </p>
+                    </div>
+                    <div className={`font-medium ${
+                      transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {transaction.type === 'income' ? '+' : '-'}R$ {transaction.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

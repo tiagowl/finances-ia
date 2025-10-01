@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Plus, Calendar } from "lucide-react"
 import { MonthlyIncome } from "@/types"
+import { useFinance } from "@/contexts/FinanceContext"
 
 // Schema de validação para o formulário de receita mensal
 const monthlyIncomeFormSchema = z.object({
@@ -36,52 +37,6 @@ const monthlyIncomeFormSchema = z.object({
 
 type MonthlyIncomeFormValues = z.infer<typeof monthlyIncomeFormSchema>
 
-// Dados de exemplo para receitas mensais
-const sampleMonthlyIncomes: MonthlyIncome[] = [
-  {
-    id: '13',
-    name: 'Salário',
-    amount: 5000.00,
-    lastReceivedDate: '2024-01-05',
-    nextReceivedDate: '2024-02-05',
-    isActive: true
-  },
-  {
-    id: '14',
-    name: 'Freelance Web',
-    amount: 1200.00,
-    lastReceivedDate: '2024-01-20',
-    nextReceivedDate: '2024-02-20',
-    isActive: true
-  },
-  {
-    id: '15',
-    name: 'Aluguel Recebido',
-    amount: 800.00,
-    lastReceivedDate: '2024-01-01',
-    nextReceivedDate: '2024-02-01',
-    isActive: true
-  },
-  {
-    id: '16',
-    name: 'Dividendos',
-    amount: 300.00,
-    lastReceivedDate: '2024-01-15',
-    nextReceivedDate: '2024-02-15',
-    isActive: true
-  },
-  {
-    id: '17',
-    name: 'Consultoria',
-    amount: 2000.00,
-    lastReceivedDate: '2024-01-10',
-    nextReceivedDate: '2024-02-10',
-    isActive: false
-  }
-]
-
-// Calcular total das receitas mensais
-const totalMonthlyIncomes = sampleMonthlyIncomes.reduce((sum, income) => sum + income.amount, 0)
 
 // Definições de colunas para as tabelas
 const monthlyIncomesColumns: ColumnDef<MonthlyIncome>[] = [
@@ -119,6 +74,9 @@ const monthlyIncomesColumns: ColumnDef<MonthlyIncome>[] = [
 
 export default function MonthlyIncomes() {
   const [isMonthlyIncomeSheetOpen, setIsMonthlyIncomeSheetOpen] = useState(false)
+  const { monthlyIncomes, addMonthlyIncome, getTotalMonthlyIncomes } = useFinance()
+
+  const totalMonthlyIncomes = getTotalMonthlyIncomes()
 
   // Formulário de receita mensal
   const monthlyIncomeForm = useForm<MonthlyIncomeFormValues>({
@@ -131,8 +89,18 @@ export default function MonthlyIncomes() {
 
   // Função para submeter o formulário de receita mensal
   const onSubmitMonthlyIncome = (values: MonthlyIncomeFormValues) => {
-    console.log("Nova receita mensal:", values)
-    // Aqui você pode adicionar a lógica para salvar a receita mensal
+    const today = new Date().toISOString().split('T')[0]
+    const nextMonth = new Date()
+    nextMonth.setMonth(nextMonth.getMonth() + 1)
+    const nextMonthStr = nextMonth.toISOString().split('T')[0]
+
+    addMonthlyIncome({
+      name: values.name,
+      amount: parseFloat(values.amount),
+      lastReceivedDate: today,
+      nextReceivedDate: nextMonthStr,
+      isActive: true
+    })
     monthlyIncomeForm.reset()
     setIsMonthlyIncomeSheetOpen(false)
   }
@@ -225,7 +193,7 @@ export default function MonthlyIncomes() {
             R$ {totalMonthlyIncomes.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
           </div>
           <p className="text-xs text-muted-foreground">
-            {sampleMonthlyIncomes.length} receita(s) mensal(is) cadastrada(s)
+            {monthlyIncomes.length} receita(s) mensal(is) cadastrada(s)
           </p>
         </CardContent>
       </Card>
@@ -241,7 +209,7 @@ export default function MonthlyIncomes() {
         <CardContent>
           <DataTable
             columns={monthlyIncomesColumns} 
-            data={sampleMonthlyIncomes} 
+            data={monthlyIncomes} 
             searchKey="name"
             searchPlaceholder="Buscar receitas mensais..."
           />

@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Plus, Tag } from "lucide-react"
 import { Category } from "@/types"
+import { useFinance } from "@/contexts/FinanceContext"
 
 // Schema de validação para o formulário de categoria
 const categoryFormSchema = z.object({
@@ -36,36 +37,6 @@ const categoryFormSchema = z.object({
 
 type CategoryFormValues = z.infer<typeof categoryFormSchema>
 
-// Dados de exemplo para categorias
-const sampleCategories: Category[] = [
-  {
-    id: '1',
-    name: 'Jogos',
-    budget: 134.90,
-    maxBudget: 200.00,
-    color: 'red'
-  },
-  {
-    id: '2',
-    name: 'Alimentação',
-    budget: 366.30,
-    maxBudget: 500.00,
-    color: 'red'
-  },
-  {
-    id: '3',
-    name: 'Refeição',
-    budget: 130.40,
-    maxBudget: 300.00,
-    color: 'red'
-  }
-]
-
-// Calcular totais por categoria
-const totalCategoriesAmount = sampleCategories.reduce((sum, category) => sum + category.budget, 0)
-const totalGamesAmount = sampleCategories.find(cat => cat.name === 'Jogos')?.budget || 0
-const totalFoodAmount = sampleCategories.find(cat => cat.name === 'Alimentação')?.budget || 0
-const totalMealAmount = sampleCategories.find(cat => cat.name === 'Refeição')?.budget || 0
 
 // Definições de colunas para as tabelas
 const categoriesColumns: ColumnDef<Category>[] = [
@@ -101,6 +72,13 @@ const categoriesColumns: ColumnDef<Category>[] = [
 
 export default function Categories() {
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false)
+  const { categories, addCategory } = useFinance()
+
+  // Calculate totals by category
+  const totalCategoriesAmount = categories.reduce((sum, category) => sum + category.budget, 0)
+  const totalGamesAmount = categories.find(cat => cat.name === 'Jogos')?.budget || 0
+  const totalFoodAmount = categories.find(cat => cat.name === 'Alimentação')?.budget || 0
+  const totalMealAmount = categories.find(cat => cat.name === 'Refeição')?.budget || 0
 
   // Formulário de categoria
   const categoryForm = useForm<CategoryFormValues>({
@@ -113,8 +91,12 @@ export default function Categories() {
 
   // Função para submeter o formulário de categoria
   const onSubmitCategory = (values: CategoryFormValues) => {
-    console.log("Nova categoria:", values)
-    // Aqui você pode adicionar a lógica para salvar a categoria
+    addCategory({
+      name: values.name,
+      budget: 0, // Start with 0 spent
+      maxBudget: parseFloat(values.limit),
+      color: 'blue' // Default color
+    })
     categoryForm.reset()
     setIsCategorySheetOpen(false)
   }
@@ -209,7 +191,7 @@ export default function Categories() {
               R$ {totalCategoriesAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleCategories.length} categoria(s) cadastrada(s)
+              {categories.length} categoria(s) cadastrada(s)
             </p>
           </CardContent>
         </Card>
@@ -280,7 +262,7 @@ export default function Categories() {
         <CardContent>
           <DataTable 
             columns={categoriesColumns} 
-            data={sampleCategories} 
+            data={categories} 
             searchKey="name"
             searchPlaceholder="Buscar categorias..."
           />

@@ -25,6 +25,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { Plus, Heart } from "lucide-react"
 import { Wish } from "@/types"
+import { useFinance } from "@/contexts/FinanceContext"
 
 // Schema de validação para o formulário de desejo
 const wishFormSchema = z.object({
@@ -34,109 +35,6 @@ const wishFormSchema = z.object({
 
 type WishFormValues = z.infer<typeof wishFormSchema>
 
-// Dados de exemplo para desejos
-const sampleWishes: Wish[] = [
-  {
-    id: '1',
-    name: 'PlayStation 5',
-    estimatedPrice: 4500.00,
-    category: 'Jogos',
-    priority: 'Alta',
-    status: 'Pendente',
-    targetDate: '2024-06-01',
-    purchaseLink: 'https://www.playstation.com/ps5/',
-    notes: 'Para jogar os lançamentos exclusivos'
-  },
-  {
-    id: '2',
-    name: 'MacBook Pro M3',
-    estimatedPrice: 12000.00,
-    category: 'Trabalho',
-    priority: 'Muito Alta',
-    status: 'Pendente',
-    targetDate: '2024-08-15',
-    purchaseLink: 'https://www.apple.com/macbook-pro/',
-    notes: 'Necessário para projetos de desenvolvimento'
-  },
-  {
-    id: '3',
-    name: 'Viagem para Europa',
-    estimatedPrice: 8000.00,
-    category: 'Viagem',
-    priority: 'Média',
-    status: 'Pendente',
-    targetDate: '2024-12-01',
-    purchaseLink: 'https://www.expedia.com/',
-    notes: 'Sonho de conhecer a Europa'
-  },
-  {
-    id: '4',
-    name: 'Curso de Inglês',
-    purchaseLink: 'https://www.cambridgeenglish.org/',
-    category: 'Educação',
-    estimatedPrice: 1200.00,
-    priority: 'Alta',
-    status: 'Pendente',
-    targetDate: '2024-04-01',
-    notes: 'Para melhorar oportunidades profissionais'
-  },
-  {
-    id: '5',
-    name: 'Smartphone iPhone 15',
-    purchaseLink: 'https://www.apple.com/iphone-15/',
-    category: 'Tecnologia',
-    estimatedPrice: 6000.00,
-    priority: 'Média',
-    status: 'Pendente',
-    targetDate: '2024-07-01',
-    notes: 'Atualizar do iPhone 12'
-  },
-  {
-    id: '6',
-    name: 'Academia Premium',
-    purchaseLink: 'https://www.smartfit.com.br/',
-    category: 'Saúde',
-    estimatedPrice: 2400.00,
-    priority: 'Alta',
-    status: 'Pendente',
-    targetDate: '2024-03-01',
-    notes: 'Investir na saúde e bem-estar'
-  },
-  {
-    id: '7',
-    name: 'Cafeteira Espresso',
-    purchaseLink: 'https://www.nespresso.com/',
-    category: 'Alimentação',
-    estimatedPrice: 800.00,
-    priority: 'Baixa',
-    status: 'Pendente',
-    targetDate: '2024-05-01',
-    notes: 'Para fazer café de qualidade em casa'
-  },
-  {
-    id: '8',
-    name: 'Jantar no Restaurante Fino',
-    purchaseLink: 'https://www.opentable.com/',
-    category: 'Refeição',
-    estimatedPrice: 500.00,
-    priority: 'Baixa',
-    status: 'Pendente',
-    targetDate: '2024-02-14',
-    notes: 'Para o Dia dos Namorados'
-  }
-]
-
-// Calcular totais dos desejos
-const totalWishesAmount = sampleWishes.reduce((sum, wish) => sum + wish.estimatedPrice, 0)
-const totalWishesGamesAmount = sampleWishes
-  .filter(wish => wish.category === 'Jogos')
-  .reduce((sum, wish) => sum + wish.estimatedPrice, 0)
-const totalWishesFoodAmount = sampleWishes
-  .filter(wish => wish.category === 'Alimentação')
-  .reduce((sum, wish) => sum + wish.estimatedPrice, 0)
-const totalWishesMealAmount = sampleWishes
-  .filter(wish => wish.category === 'Refeição')
-  .reduce((sum, wish) => sum + wish.estimatedPrice, 0)
 
 // Definições de colunas para as tabelas
 const wishesColumns: ColumnDef<Wish>[] = [
@@ -201,6 +99,20 @@ const wishesColumns: ColumnDef<Wish>[] = [
 
 export default function Wishes() {
   const [isWishSheetOpen, setIsWishSheetOpen] = useState(false)
+  const { wishes, addWish, getTotalWishes } = useFinance()
+
+  const totalWishesAmount = getTotalWishes()
+
+  // Calculate totals by category
+  const totalWishesGamesAmount = wishes
+    .filter(wish => wish.category === 'Jogos')
+    .reduce((sum, wish) => sum + wish.estimatedPrice, 0)
+  const totalWishesFoodAmount = wishes
+    .filter(wish => wish.category === 'Alimentação')
+    .reduce((sum, wish) => sum + wish.estimatedPrice, 0)
+  const totalWishesMealAmount = wishes
+    .filter(wish => wish.category === 'Refeição')
+    .reduce((sum, wish) => sum + wish.estimatedPrice, 0)
 
   // Formulário de desejo
   const wishForm = useForm<WishFormValues>({
@@ -213,8 +125,16 @@ export default function Wishes() {
 
   // Função para submeter o formulário de desejo
   const onSubmitWish = (values: WishFormValues) => {
-    console.log("Novo desejo:", values)
-    // Aqui você pode adicionar a lógica para salvar o desejo
+    addWish({
+      name: values.name,
+      estimatedPrice: 0, // User can set this later
+      category: 'Outros',
+      priority: 'Média',
+      status: 'Pendente',
+      targetDate: new Date().toISOString().split('T')[0],
+      purchaseLink: values.purchaseLink,
+      notes: ''
+    })
     wishForm.reset()
     setIsWishSheetOpen(false)
   }
@@ -308,7 +228,7 @@ export default function Wishes() {
               R$ {totalWishesAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleWishes.length} desejo(s) cadastrado(s)
+              {wishes.length} desejo(s) cadastrado(s)
             </p>
           </CardContent>
         </Card>
@@ -326,7 +246,7 @@ export default function Wishes() {
               R$ {totalWishesGamesAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleWishes.filter(w => w.category === 'Jogos').length} desejo(s) em jogos
+              {wishes.filter(w => w.category === 'Jogos').length} desejo(s) em jogos
             </p>
           </CardContent>
         </Card>
@@ -344,7 +264,7 @@ export default function Wishes() {
               R$ {totalWishesFoodAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleWishes.filter(w => w.category === 'Alimentação').length} desejo(s) em alimentação
+              {wishes.filter(w => w.category === 'Alimentação').length} desejo(s) em alimentação
             </p>
           </CardContent>
         </Card>
@@ -362,7 +282,7 @@ export default function Wishes() {
               R$ {totalWishesMealAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              {sampleWishes.filter(w => w.category === 'Refeição').length} desejo(s) em refeição
+              {wishes.filter(w => w.category === 'Refeição').length} desejo(s) em refeição
             </p>
           </CardContent>
         </Card>
@@ -379,7 +299,7 @@ export default function Wishes() {
         <CardContent>
           <DataTable 
             columns={wishesColumns} 
-            data={sampleWishes} 
+            data={wishes} 
             searchKey="name"
             searchPlaceholder="Buscar desejos..."
           />
