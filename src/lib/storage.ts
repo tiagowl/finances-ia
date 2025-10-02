@@ -65,7 +65,12 @@ export const loadMonthlyExpenses = (): MonthlyExpense[] => {
   })
   
   // Salvar dados migrados se houve mudança
-  if (migratedExpenses.some((expense, index) => expense.dayOfMonth !== expenses[index]?.dayOfMonth)) {
+  const hasChanges = migratedExpenses.some((expense: any, index) => {
+    const originalExpense = expenses[index] as any
+    return expense.dayOfMonth !== originalExpense?.dayOfMonth
+  })
+  
+  if (hasChanges) {
     saveToStorage(STORAGE_KEYS.MONTHLY_EXPENSES, migratedExpenses)
   }
   
