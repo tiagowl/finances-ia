@@ -22,8 +22,7 @@ export interface MonthlyExpense {
   id: string
   name: string
   amount: number
-  lastChargedDate: string
-  nextChargedDate: string
+  dayOfMonth: number // Dia do mês que será cobrado (1-31)
   cancellationLink: string
   isActive: boolean
 }

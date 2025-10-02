@@ -33,6 +33,8 @@ interface FinanceContextType {
   
   // Monthly Expense methods
   addMonthlyExpense: (monthlyExpense: Omit<MonthlyExpense, 'id'>) => void
+  updateMonthlyExpense: (id: string, monthlyExpense: Partial<Omit<MonthlyExpense, 'id'>>) => void
+  deleteMonthlyExpense: (id: string) => void
   
   // Category methods
   addCategory: (category: Omit<Category, 'id'>) => void
@@ -187,7 +189,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     // Trigger: Notificação de despesa mensal criada
     addNotification({
       title: '💳 Nova Despesa Mensal',
-      message: `Despesa mensal "${monthlyExpense.name}" de R$ ${monthlyExpense.amount.toFixed(2)} adicionada`,
+      message: `Despesa mensal "${monthlyExpense.name}" de R$ ${monthlyExpense.amount.toFixed(2)} adicionada (vence dia ${monthlyExpense.dayOfMonth})`,
       type: 'info',
       timestamp: new Date().toISOString(),
       isRead: false
@@ -195,6 +197,43 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     
     // Trigger: Verificar vencimentos após adicionar despesa mensal
     setTimeout(() => checkMonthlyExpenseDueDates(), 200)
+  }
+
+  const updateMonthlyExpense = (id: string, updatedData: Partial<Omit<MonthlyExpense, 'id'>>) => {
+    setMonthlyExpenses(prev => prev.map(expense => 
+      expense.id === id ? { ...expense, ...updatedData } : expense
+    ))
+    
+    // Trigger: Notificação de despesa mensal atualizada
+    const expense = monthlyExpenses.find(e => e.id === id)
+    if (expense) {
+      addNotification({
+        title: '✏️ Despesa Mensal Atualizada',
+        message: `Despesa mensal "${expense.name}" foi atualizada`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
+    
+    // Trigger: Verificar vencimentos após atualizar despesa mensal
+    setTimeout(() => checkMonthlyExpenseDueDates(), 200)
+  }
+
+  const deleteMonthlyExpense = (id: string) => {
+    const expense = monthlyExpenses.find(e => e.id === id)
+    setMonthlyExpenses(prev => prev.filter(e => e.id !== id))
+    
+    // Trigger: Notificação de despesa mensal excluída
+    if (expense) {
+      addNotification({
+        title: '🗑️ Despesa Mensal Excluída',
+        message: `Despesa mensal "${expense.name}" foi excluída`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
   }
 
 
@@ -366,18 +405,30 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
   // Monthly expense due date monitoring function
   const checkMonthlyExpenseDueDates = () => {
     const today = new Date()
+    const currentDay = today.getDate()
     
     monthlyExpenses
       .filter(expense => expense.isActive)
       .forEach(expense => {
-        const dueDate = new Date(expense.nextChargedDate)
-        const daysUntilDue = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        const dayOfMonth = expense.dayOfMonth
+        
+        // Calcular quantos dias faltam para o dia da cobrança
+        let daysUntilDue: number
+        
+        if (currentDay <= dayOfMonth) {
+          // Ainda não chegou o dia da cobrança neste mês
+          daysUntilDue = dayOfMonth - currentDay
+        } else {
+          // Já passou o dia da cobrança neste mês, calcular para o próximo mês
+          const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, dayOfMonth)
+          daysUntilDue = Math.ceil((nextMonth.getTime() - today.getTime()) / (1000 * 60 * 60 * 24))
+        }
         
         // Notificação 7 dias antes do vencimento
         if (daysUntilDue === 7) {
           addNotification({
             title: '📅 Despesa Mensal Vencendo em 7 Dias',
-            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} vence em 7 dias (${dueDate.toLocaleDateString('pt-BR')})`,
+            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} vence em 7 dias (dia ${dayOfMonth})`,
             type: 'warning',
             timestamp: new Date().toISOString(),
             isRead: false
@@ -388,7 +439,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
         if (daysUntilDue === 3) {
           addNotification({
             title: '⚠️ Despesa Mensal Vencendo em 3 Dias',
-            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} vence em 3 dias (${dueDate.toLocaleDateString('pt-BR')})`,
+            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} vence em 3 dias (dia ${dayOfMonth})`,
             type: 'warning',
             timestamp: new Date().toISOString(),
             isRead: false
@@ -399,7 +450,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
         if (daysUntilDue === 0) {
           addNotification({
             title: '🚨 Despesa Mensal Vence Hoje!',
-            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} vence hoje!`,
+            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} vence hoje (dia ${dayOfMonth})!`,
             type: 'error',
             timestamp: new Date().toISOString(),
             isRead: false
@@ -410,7 +461,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
         if (daysUntilDue === -1) {
           addNotification({
             title: '🔴 Despesa Mensal Vencida!',
-            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} está vencida há 1 dia!`,
+            message: `"${expense.name}" de R$ ${expense.amount.toFixed(2)} está vencida há 1 dia (venceu no dia ${dayOfMonth})!`,
             type: 'error',
             timestamp: new Date().toISOString(),
             isRead: false
@@ -531,6 +582,8 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     
     // Monthly Expense methods
     addMonthlyExpense,
+    updateMonthlyExpense,
+    deleteMonthlyExpense,
     
     // Category methods
     addCategory,

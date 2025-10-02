@@ -23,7 +23,7 @@ import { Input } from "@/components/ui/input"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Plus, CalendarDays } from "lucide-react"
+import { Plus, CalendarDays, Edit, Trash2 } from "lucide-react"
 import { MonthlyExpense } from "@/types"
 import { useFinance } from "@/contexts/FinanceContext"
 
@@ -34,73 +34,22 @@ const monthlyExpenseFormSchema = z.object({
   amount: z.string().min(1, "Valor é obrigatório").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Valor deve ser um número positivo"
   }),
+  dayOfMonth: z.string().min(1, "Dia do mês é obrigatório").refine((val) => {
+    const day = Number(val)
+    return !isNaN(day) && day >= 1 && day <= 31
+  }, {
+    message: "Dia deve ser entre 1 e 31"
+  }),
 })
 
 type MonthlyExpenseFormValues = z.infer<typeof monthlyExpenseFormSchema>
 
 
-// Definições de colunas para as tabelas
-const monthlyExpensesColumns: ColumnDef<MonthlyExpense>[] = [
-  {
-    accessorKey: "name",
-    header: "Nome",
-  },
-  {
-    accessorKey: "amount",
-    header: "Preço",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"))
-      return (
-        <div className="text-right font-medium text-red-600">
-          R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: "lastChargedDate",
-    header: "Data Última Cobrança",
-    cell: ({ row }) => {
-      return new Date(row.getValue("lastChargedDate")).toLocaleDateString('pt-BR')
-    },
-  },
-  {
-    accessorKey: "nextChargedDate",
-    header: "Data Próxima Cobrança",
-    cell: ({ row }) => {
-      return new Date(row.getValue("nextChargedDate")).toLocaleDateString('pt-BR')
-    },
-  },
-  {
-    accessorKey: "cancellationLink",
-    header: "Ações",
-    cell: ({ row }) => {
-      const link = row.getValue("cancellationLink") as string
-      return (
-        <div className="flex gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => window.open(link, '_blank')}
-          >
-            Ir para Link
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigator.clipboard.writeText(link)}
-          >
-            Copiar Link
-          </Button>
-        </div>
-      )
-    },
-  },
-]
 
 export default function MonthlyExpenses() {
   const [isMonthlyExpenseSheetOpen, setIsMonthlyExpenseSheetOpen] = useState(false)
-  const { monthlyExpenses, addMonthlyExpense, getTotalMonthlyExpenses } = useFinance()
+  const [editingExpense, setEditingExpense] = useState<MonthlyExpense | null>(null)
+  const { monthlyExpenses, addMonthlyExpense, updateMonthlyExpense, deleteMonthlyExpense, getTotalMonthlyExpenses } = useFinance()
 
   const totalMonthlyExpenses = getTotalMonthlyExpenses()
 
@@ -111,26 +60,60 @@ export default function MonthlyExpenses() {
       name: "",
       cancellationLink: "",
       amount: "",
+      dayOfMonth: "",
     },
   })
 
   // Função para submeter o formulário de despesa mensal
   const onSubmitMonthlyExpense = (values: MonthlyExpenseFormValues) => {
-    const today = new Date().toISOString().split('T')[0]
-    const nextMonth = new Date()
-    nextMonth.setMonth(nextMonth.getMonth() + 1)
-    const nextMonthStr = nextMonth.toISOString().split('T')[0]
-
-    addMonthlyExpense({
-      name: values.name,
-      amount: parseFloat(values.amount),
-      lastChargedDate: today,
-      nextChargedDate: nextMonthStr,
-      cancellationLink: values.cancellationLink,
-      isActive: true
-    })
+    if (editingExpense) {
+      // Atualizar despesa existente
+      updateMonthlyExpense(editingExpense.id, {
+        name: values.name,
+        amount: parseFloat(values.amount),
+        dayOfMonth: parseInt(values.dayOfMonth),
+        cancellationLink: values.cancellationLink,
+      })
+    } else {
+      // Criar nova despesa
+      addMonthlyExpense({
+        name: values.name,
+        amount: parseFloat(values.amount),
+        dayOfMonth: parseInt(values.dayOfMonth),
+        cancellationLink: values.cancellationLink,
+        isActive: true
+      })
+    }
+    
     monthlyExpenseForm.reset()
     setIsMonthlyExpenseSheetOpen(false)
+    setEditingExpense(null)
+  }
+
+  // Função para abrir o drawer de edição
+  const handleEditExpense = (expense: MonthlyExpense) => {
+    setEditingExpense(expense)
+    monthlyExpenseForm.reset({
+      name: expense.name,
+      amount: expense.amount.toString(),
+      dayOfMonth: expense.dayOfMonth.toString(),
+      cancellationLink: expense.cancellationLink,
+    })
+    setIsMonthlyExpenseSheetOpen(true)
+  }
+
+  // Função para excluir despesa
+  const handleDeleteExpense = (expense: MonthlyExpense) => {
+    if (confirm(`Tem certeza que deseja excluir a despesa "${expense.name}"?`)) {
+      deleteMonthlyExpense(expense.id)
+    }
+  }
+
+  // Função para fechar o drawer e limpar o estado de edição
+  const handleCloseSheet = () => {
+    setIsMonthlyExpenseSheetOpen(false)
+    setEditingExpense(null)
+    monthlyExpenseForm.reset()
   }
 
   return (
@@ -142,7 +125,7 @@ export default function MonthlyExpenses() {
             Visualize suas despesas mensais
           </p>
         </div>
-        <Sheet open={isMonthlyExpenseSheetOpen} onOpenChange={setIsMonthlyExpenseSheetOpen}>
+        <Sheet open={isMonthlyExpenseSheetOpen} onOpenChange={handleCloseSheet}>
           <SheetTrigger asChild>
             <Button className="bg-black hover:bg-gray-800">
               <Plus className="h-4 w-4 mr-2" />
@@ -151,9 +134,11 @@ export default function MonthlyExpenses() {
           </SheetTrigger>
           <SheetContent side="right" className="w-[400px] sm:w-[540px]">
             <SheetHeader>
-              <SheetTitle>Cadastrar Nova Despesa Mensal</SheetTitle>
+              <SheetTitle>{editingExpense ? 'Editar Despesa Mensal' : 'Cadastrar Nova Despesa Mensal'}</SheetTitle>
               <SheetDescription>
-                Preencha os dados abaixo para cadastrar uma nova despesa mensal.
+                {editingExpense 
+                  ? 'Edite os dados abaixo para atualizar a despesa mensal.' 
+                  : 'Preencha os dados abaixo para cadastrar uma nova despesa mensal.'}
               </SheetDescription>
             </SheetHeader>
             <Form {...monthlyExpenseForm}>
@@ -206,17 +191,36 @@ export default function MonthlyExpenses() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={monthlyExpenseForm.control}
+                  name="dayOfMonth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dia do Mês para Cobrança</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          max="31" 
+                          placeholder="Ex: 15" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="flex gap-2 pt-4">
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => setIsMonthlyExpenseSheetOpen(false)}
+                    onClick={handleCloseSheet}
                     className="flex-1"
                   >
                     Cancelar
                   </Button>
                   <Button type="submit" className="flex-1 bg-black hover:bg-gray-800">
-                    Cadastrar
+                    {editingExpense ? 'Atualizar' : 'Cadastrar'}
                   </Button>
                 </div>
               </form>
@@ -253,7 +257,76 @@ export default function MonthlyExpenses() {
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={monthlyExpensesColumns} 
+            columns={[
+              {
+                accessorKey: "name",
+                header: "Nome",
+              },
+              {
+                accessorKey: "amount",
+                header: "Preço",
+                cell: ({ row }) => {
+                  const amount = parseFloat(row.getValue("amount"))
+                  return (
+                    <div className="text-right font-medium text-red-600">
+                      R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  )
+                },
+              },
+              {
+                accessorKey: "dayOfMonth",
+                header: "Dia da Cobrança",
+                cell: ({ row }) => {
+                  const day = row.getValue("dayOfMonth") as number
+                  return (
+                    <div className="text-center">
+                      Dia {day}
+                    </div>
+                  )
+                },
+              },
+              {
+                accessorKey: "cancellationLink",
+                header: "Ações",
+                cell: ({ row }) => {
+                  const expense = row.original
+                  const link = row.getValue("cancellationLink") as string
+                  return (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditExpense(expense)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteExpense(expense)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => window.open(link, '_blank')}
+                      >
+                        Ir para Link
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => navigator.clipboard.writeText(link)}
+                      >
+                        Copiar Link
+                      </Button>
+                    </div>
+                  )
+                },
+              },
+            ]} 
             data={monthlyExpenses} 
             searchKey="name"
             searchPlaceholder="Buscar despesas mensais..."
