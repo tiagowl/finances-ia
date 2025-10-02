@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTable } from "@/components/ui/data-table"
-import { ColumnDef } from "@tanstack/react-table"
 import {
   Sheet,
   SheetContent,
@@ -23,7 +22,7 @@ import { Input } from "@/components/ui/input"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Plus, Calendar } from "lucide-react"
+import { Plus, Calendar, Edit, Trash2 } from "lucide-react"
 import { MonthlyIncome } from "@/types"
 import { useFinance } from "@/contexts/FinanceContext"
 
@@ -33,48 +32,30 @@ const monthlyIncomeFormSchema = z.object({
   amount: z.string().min(1, "Valor é obrigatório").refine((val) => !isNaN(Number(val)) && Number(val) > 0, {
     message: "Valor deve ser um número positivo"
   }),
+  dayOfMonth: z.string().min(1, "Dia do mês é obrigatório").refine((val) => {
+    const day = Number(val)
+    return !isNaN(day) && day >= 1 && day <= 31
+  }, {
+    message: "Dia deve ser entre 1 e 31"
+  }),
 })
 
 type MonthlyIncomeFormValues = z.infer<typeof monthlyIncomeFormSchema>
 
 
-// Definições de colunas para as tabelas
-const monthlyIncomesColumns: ColumnDef<MonthlyIncome>[] = [
-  {
-    accessorKey: "name",
-    header: "Nome",
-  },
-  {
-    accessorKey: "amount",
-    header: "Preço",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("amount"))
-      return (
-        <div className="text-right font-medium text-green-600">
-          R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: "lastReceivedDate",
-    header: "Data Último Recebimento",
-    cell: ({ row }) => {
-      return new Date(row.getValue("lastReceivedDate")).toLocaleDateString('pt-BR')
-    },
-  },
-  {
-    accessorKey: "nextReceivedDate",
-    header: "Data Próximo Recebimento",
-    cell: ({ row }) => {
-      return new Date(row.getValue("nextReceivedDate")).toLocaleDateString('pt-BR')
-    },
-  },
-]
 
 export default function MonthlyIncomes() {
   const [isMonthlyIncomeSheetOpen, setIsMonthlyIncomeSheetOpen] = useState(false)
-  const { monthlyIncomes, addMonthlyIncome, getTotalMonthlyIncomes } = useFinance()
+  const [editingIncome, setEditingIncome] = useState<MonthlyIncome | null>(null)
+  const { monthlyIncomes, addMonthlyIncome, updateMonthlyIncome, deleteMonthlyIncome, getTotalMonthlyIncomes } = useFinance()
+  
+  // Função de debug para limpar dados antigos
+  const clearOldData = () => {
+    if (confirm('Isso irá limpar todas as receitas mensais. Continuar?')) {
+      localStorage.removeItem('finances-monthly-incomes')
+      window.location.reload()
+    }
+  }
 
   const totalMonthlyIncomes = getTotalMonthlyIncomes()
 
@@ -84,25 +65,66 @@ export default function MonthlyIncomes() {
     defaultValues: {
       name: "",
       amount: "",
+      dayOfMonth: "",
     },
   })
 
   // Função para submeter o formulário de receita mensal
   const onSubmitMonthlyIncome = (values: MonthlyIncomeFormValues) => {
-    const today = new Date().toISOString().split('T')[0]
-    const nextMonth = new Date()
-    nextMonth.setMonth(nextMonth.getMonth() + 1)
-    const nextMonthStr = nextMonth.toISOString().split('T')[0]
+    console.log('Form submitted with values:', values)
+    console.log('Editing income:', editingIncome)
+    
+    try {
+      if (editingIncome) {
+        // Atualizar receita existente
+        console.log('Updating income with ID:', editingIncome.id)
+        updateMonthlyIncome(editingIncome.id, {
+          name: values.name,
+          amount: parseFloat(values.amount),
+          dayOfMonth: parseInt(values.dayOfMonth),
+        })
+      } else {
+        // Criar nova receita
+        console.log('Creating new income')
+        addMonthlyIncome({
+          name: values.name,
+          amount: parseFloat(values.amount),
+          dayOfMonth: parseInt(values.dayOfMonth),
+          isActive: true
+        })
+      }
+      
+      monthlyIncomeForm.reset()
+      setIsMonthlyIncomeSheetOpen(false)
+      setEditingIncome(null)
+    } catch (error) {
+      console.error('Error submitting form:', error)
+    }
+  }
 
-    addMonthlyIncome({
-      name: values.name,
-      amount: parseFloat(values.amount),
-      lastReceivedDate: today,
-      nextReceivedDate: nextMonthStr,
-      isActive: true
+  // Função para abrir o drawer de edição
+  const handleEditIncome = (income: MonthlyIncome) => {
+    setEditingIncome(income)
+    monthlyIncomeForm.reset({
+      name: income.name,
+      amount: income.amount.toString(),
+      dayOfMonth: income.dayOfMonth.toString(),
     })
-    monthlyIncomeForm.reset()
+    setIsMonthlyIncomeSheetOpen(true)
+  }
+
+  // Função para excluir receita
+  const handleDeleteIncome = (income: MonthlyIncome) => {
+    if (confirm(`Tem certeza que deseja excluir a receita "${income.name}"?`)) {
+      deleteMonthlyIncome(income.id)
+    }
+  }
+
+  // Função para fechar o drawer e limpar o estado de edição
+  const handleCloseSheet = () => {
     setIsMonthlyIncomeSheetOpen(false)
+    setEditingIncome(null)
+    monthlyIncomeForm.reset()
   }
 
   return (
@@ -114,7 +136,15 @@ export default function MonthlyIncomes() {
             Visualize suas receitas mensais
           </p>
         </div>
-        <Sheet open={isMonthlyIncomeSheetOpen} onOpenChange={setIsMonthlyIncomeSheetOpen}>
+        <div className="flex gap-2">
+          <Button 
+            onClick={clearOldData}
+            variant="outline"
+            size="sm"
+          >
+            🗑️ Limpar Dados (Debug)
+          </Button>
+          <Sheet open={isMonthlyIncomeSheetOpen} onOpenChange={handleCloseSheet}>
           <SheetTrigger asChild>
             <Button className="bg-black hover:bg-gray-800">
               <Plus className="h-4 w-4 mr-2" />
@@ -123,9 +153,11 @@ export default function MonthlyIncomes() {
           </SheetTrigger>
           <SheetContent side="right" className="w-[400px] sm:w-[540px]">
             <SheetHeader>
-              <SheetTitle>Cadastrar Nova Receita Mensal</SheetTitle>
+              <SheetTitle>{editingIncome ? 'Editar Receita Mensal' : 'Cadastrar Nova Receita Mensal'}</SheetTitle>
               <SheetDescription>
-                Preencha os dados abaixo para cadastrar uma nova receita mensal.
+                {editingIncome 
+                  ? 'Edite os dados abaixo para atualizar a receita mensal.' 
+                  : 'Preencha os dados abaixo para cadastrar uma nova receita mensal.'}
               </SheetDescription>
             </SheetHeader>
             <Form {...monthlyIncomeForm}>
@@ -161,23 +193,43 @@ export default function MonthlyIncomes() {
                     </FormItem>
                   )}
                 />
+                <FormField
+                  control={monthlyIncomeForm.control}
+                  name="dayOfMonth"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Dia do Mês para Recebimento</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min="1" 
+                          max="31" 
+                          placeholder="Ex: 5" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <div className="flex gap-2 pt-4">
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => setIsMonthlyIncomeSheetOpen(false)}
+                    onClick={handleCloseSheet}
                     className="flex-1"
                   >
                     Cancelar
                   </Button>
                   <Button type="submit" className="flex-1 bg-black hover:bg-gray-800">
-                    Cadastrar
+                    {editingIncome ? 'Atualizar' : 'Cadastrar'}
                   </Button>
                 </div>
               </form>
             </Form>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
       
       {/* Card de Estatística */}
@@ -208,7 +260,61 @@ export default function MonthlyIncomes() {
         </CardHeader>
         <CardContent>
           <DataTable
-            columns={monthlyIncomesColumns} 
+            columns={[
+              {
+                accessorKey: "name",
+                header: "Nome",
+              },
+              {
+                accessorKey: "amount",
+                header: "Preço",
+                cell: ({ row }) => {
+                  const amount = parseFloat(row.getValue("amount"))
+                  return (
+                    <div className="text-right font-medium text-green-600">
+                      R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  )
+                },
+              },
+              {
+                accessorKey: "dayOfMonth",
+                header: "Dia do Recebimento",
+                cell: ({ row }) => {
+                  const day = row.getValue("dayOfMonth") as number
+                  return (
+                    <div className="text-center">
+                      Dia {day}
+                    </div>
+                  )
+                },
+              },
+              {
+                id: "actions",
+                header: "Ações",
+                cell: ({ row }) => {
+                  const income = row.original
+                  return (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditIncome(income)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteIncome(income)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                },
+              },
+            ]} 
             data={monthlyIncomes} 
             searchKey="name"
             searchPlaceholder="Buscar receitas mensais..."

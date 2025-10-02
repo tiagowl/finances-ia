@@ -13,8 +13,7 @@ export interface MonthlyIncome {
   id: string
   name: string
   amount: number
-  lastReceivedDate: string
-  nextReceivedDate: string
+  dayOfMonth: number // Dia do mês que será recebido (1-31)
   isActive: boolean
 }
 

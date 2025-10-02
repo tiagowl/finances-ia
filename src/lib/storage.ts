@@ -42,7 +42,31 @@ export const saveMonthlyIncomes = (monthlyIncomes: MonthlyIncome[]): void => {
 }
 
 export const loadMonthlyIncomes = (): MonthlyIncome[] => {
-  return loadFromStorage(STORAGE_KEYS.MONTHLY_INCOMES, [])
+  const incomes = loadFromStorage(STORAGE_KEYS.MONTHLY_INCOMES, [])
+  
+  // Migração de dados antigos: adicionar dayOfMonth se não existir
+  const migratedIncomes = incomes.map((income: any) => {
+    if (!income.dayOfMonth) {
+      // Se não tem dayOfMonth, usar o dia 5 como padrão (comum para salários)
+      return {
+        ...income,
+        dayOfMonth: 5
+      }
+    }
+    return income
+  })
+  
+  // Salvar dados migrados se houve mudança
+  const hasChanges = migratedIncomes.some((income: any, index) => {
+    const originalIncome = incomes[index] as any
+    return income.dayOfMonth !== originalIncome?.dayOfMonth
+  })
+  
+  if (hasChanges) {
+    saveToStorage(STORAGE_KEYS.MONTHLY_INCOMES, migratedIncomes)
+  }
+  
+  return migratedIncomes
 }
 
 export const saveMonthlyExpenses = (monthlyExpenses: MonthlyExpense[]): void => {

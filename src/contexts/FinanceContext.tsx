@@ -30,6 +30,8 @@ interface FinanceContextType {
   
   // Monthly Income methods
   addMonthlyIncome: (monthlyIncome: Omit<MonthlyIncome, 'id'>) => void
+  updateMonthlyIncome: (id: string, monthlyIncome: Partial<Omit<MonthlyIncome, 'id'>>) => void
+  deleteMonthlyIncome: (id: string) => void
   
   // Monthly Expense methods
   addMonthlyExpense: (monthlyExpense: Omit<MonthlyExpense, 'id'>) => void
@@ -91,9 +93,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
   useEffect(() => {
     setTransactions(loadTransactions())
     setMonthlyIncomes(loadMonthlyIncomes())
-    const loadedExpenses = loadMonthlyExpenses()
-    console.log('Loaded monthly expenses:', loadedExpenses)
-    setMonthlyExpenses(loadedExpenses)
+    setMonthlyExpenses(loadMonthlyExpenses())
     setCategories(loadCategories())
     setWishes(loadWishes())
     setNotifications(loadNotifications())
@@ -176,6 +176,49 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
       id: generateId()
     }
     setMonthlyIncomes(prev => [...prev, newMonthlyIncome])
+    
+    // Trigger: Notificação de receita mensal criada
+    addNotification({
+      title: '💰 Nova Receita Mensal',
+      message: `Receita mensal "${monthlyIncome.name}" de R$ ${monthlyIncome.amount.toFixed(2)} adicionada (recebe dia ${monthlyIncome.dayOfMonth})`,
+      type: 'success',
+      timestamp: new Date().toISOString(),
+      isRead: false
+    })
+  }
+
+  const updateMonthlyIncome = (id: string, updatedData: Partial<Omit<MonthlyIncome, 'id'>>) => {
+    setMonthlyIncomes(prev => prev.map(income => 
+      income.id === id ? { ...income, ...updatedData } : income
+    ))
+    
+    // Trigger: Notificação de receita mensal atualizada
+    const income = monthlyIncomes.find(i => i.id === id)
+    if (income) {
+      addNotification({
+        title: '✏️ Receita Mensal Atualizada',
+        message: `Receita mensal "${income.name}" foi atualizada`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
+  }
+
+  const deleteMonthlyIncome = (id: string) => {
+    const income = monthlyIncomes.find(i => i.id === id)
+    setMonthlyIncomes(prev => prev.filter(i => i.id !== id))
+    
+    // Trigger: Notificação de receita mensal excluída
+    if (income) {
+      addNotification({
+        title: '🗑️ Receita Mensal Excluída',
+        message: `Receita mensal "${income.name}" foi excluída`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
   }
 
 
@@ -581,6 +624,8 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     
     // Monthly Income methods
     addMonthlyIncome,
+    updateMonthlyIncome,
+    deleteMonthlyIncome,
     
     // Monthly Expense methods
     addMonthlyExpense,
