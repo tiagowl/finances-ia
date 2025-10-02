@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { DataTable } from "@/components/ui/data-table"
-import { ColumnDef } from "@tanstack/react-table"
 import {
   Sheet,
   SheetContent,
@@ -23,7 +22,7 @@ import { Input } from "@/components/ui/input"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Plus, Tag } from "lucide-react"
+import { Plus, Tag, Edit, Trash2, TrendingDown } from "lucide-react"
 import { Category } from "@/types"
 import { useFinance } from "@/contexts/FinanceContext"
 
@@ -38,47 +37,30 @@ const categoryFormSchema = z.object({
 type CategoryFormValues = z.infer<typeof categoryFormSchema>
 
 
-// Definições de colunas para as tabelas
-const categoriesColumns: ColumnDef<Category>[] = [
-  {
-    accessorKey: "name",
-    header: "Nome",
-  },
-  {
-    accessorKey: "budget",
-    header: "Preço",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("budget"))
-      return (
-        <div className="text-right font-medium text-red-600">
-          R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </div>
-      )
-    },
-  },
-  {
-    accessorKey: "maxBudget",
-    header: "Orçamento Máximo",
-    cell: ({ row }) => {
-      const amount = parseFloat(row.getValue("maxBudget"))
-      return (
-        <div className="text-right font-medium text-blue-600">
-          R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-        </div>
-      )
-    },
-  },
-]
 
 export default function Categories() {
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false)
-  const { categories, addCategory } = useFinance()
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null)
+  const { categories, addCategory, updateCategory, deleteCategory, getCategoryExpenses } = useFinance()
+  
+  // Função de debug para limpar dados antigos
+  const clearOldData = () => {
+    if (confirm('Isso irá limpar todas as categorias. Continuar?')) {
+      localStorage.removeItem('finances-categories')
+      window.location.reload()
+    }
+  }
 
   // Calculate totals by category
-  const totalCategoriesAmount = categories.reduce((sum, category) => sum + category.budget, 0)
-  const totalGamesAmount = categories.find(cat => cat.name === 'Jogos')?.budget || 0
-  const totalFoodAmount = categories.find(cat => cat.name === 'Alimentação')?.budget || 0
-  const totalMealAmount = categories.find(cat => cat.name === 'Refeição')?.budget || 0
+  const totalMaxBudgets = categories.reduce((sum, category) => sum + category.maxBudget, 0)
+  
+  // Calculate expenses by category
+  const categoryExpenses = categories.map(category => ({
+    ...category,
+    spent: getCategoryExpenses(category.name)
+  }))
+  
+  const totalSpent = categoryExpenses.reduce((sum, cat) => sum + cat.spent, 0)
 
   // Formulário de categoria
   const categoryForm = useForm<CategoryFormValues>({
@@ -91,14 +73,49 @@ export default function Categories() {
 
   // Função para submeter o formulário de categoria
   const onSubmitCategory = (values: CategoryFormValues) => {
-    addCategory({
-      name: values.name,
-      budget: 0, // Start with 0 spent
-      maxBudget: parseFloat(values.limit),
-      color: 'blue' // Default color
-    })
+    if (editingCategory) {
+      // Atualizar categoria existente
+      updateCategory(editingCategory.id, {
+        name: values.name,
+        maxBudget: parseFloat(values.limit),
+      })
+    } else {
+      // Criar nova categoria
+      addCategory({
+        name: values.name,
+        budget: 0, // Start with 0 spent
+        maxBudget: parseFloat(values.limit),
+        color: 'blue' // Default color
+      })
+    }
+    
     categoryForm.reset()
     setIsCategorySheetOpen(false)
+    setEditingCategory(null)
+  }
+
+  // Função para abrir o drawer de edição
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category)
+    categoryForm.reset({
+      name: category.name,
+      limit: category.maxBudget.toString(),
+    })
+    setIsCategorySheetOpen(true)
+  }
+
+  // Função para excluir categoria
+  const handleDeleteCategory = (category: Category) => {
+    if (confirm(`Tem certeza que deseja excluir a categoria "${category.name}"?`)) {
+      deleteCategory(category.id)
+    }
+  }
+
+  // Função para fechar o drawer e limpar o estado de edição
+  const handleCloseSheet = () => {
+    setIsCategorySheetOpen(false)
+    setEditingCategory(null)
+    categoryForm.reset()
   }
 
   return (
@@ -110,18 +127,28 @@ export default function Categories() {
             Gerencie suas categorias de receitas e despesas
           </p>
         </div>
-        <Sheet open={isCategorySheetOpen} onOpenChange={setIsCategorySheetOpen}>
-          <SheetTrigger asChild>
-            <Button className="bg-black hover:bg-gray-800">
-              <Plus className="h-4 w-4 mr-2" />
-              Cadastrar Categoria
-            </Button>
-          </SheetTrigger>
+        <div className="flex gap-2">
+          <Button 
+            onClick={clearOldData}
+            variant="outline"
+            size="sm"
+          >
+            🗑️ Limpar Dados (Debug)
+          </Button>
+          <Sheet open={isCategorySheetOpen} onOpenChange={handleCloseSheet}>
+            <SheetTrigger asChild>
+              <Button className="bg-black hover:bg-gray-800">
+                <Plus className="h-4 w-4 mr-2" />
+                Cadastrar Categoria
+              </Button>
+            </SheetTrigger>
           <SheetContent side="right" className="w-[400px] sm:w-[540px]">
             <SheetHeader>
-              <SheetTitle>Cadastrar Nova Categoria</SheetTitle>
+              <SheetTitle>{editingCategory ? 'Editar Categoria' : 'Cadastrar Nova Categoria'}</SheetTitle>
               <SheetDescription>
-                Preencha os dados abaixo para cadastrar uma nova categoria.
+                {editingCategory 
+                  ? 'Edite os dados abaixo para atualizar a categoria.' 
+                  : 'Preencha os dados abaixo para cadastrar uma nova categoria.'}
               </SheetDescription>
             </SheetHeader>
             <Form {...categoryForm}>
@@ -161,34 +188,35 @@ export default function Categories() {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => setIsCategorySheetOpen(false)}
+                    onClick={handleCloseSheet}
                     className="flex-1"
                   >
                     Cancelar
                   </Button>
                   <Button type="submit" className="flex-1 bg-black hover:bg-gray-800">
-                    Cadastrar
+                    {editingCategory ? 'Atualizar' : 'Cadastrar'}
                   </Button>
                 </div>
               </form>
             </Form>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
       
       {/* Cards de Estatística */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Total de Categorias */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Total de Orçamentos Máximos */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Total de Categorias
+              Total de Orçamentos Máximos
             </CardTitle>
             <Tag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              R$ {totalCategoriesAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {totalMaxBudgets.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
               {categories.length} categoria(s) cadastrada(s)
@@ -196,56 +224,40 @@ export default function Categories() {
           </CardContent>
         </Card>
 
-        {/* Categoria Jogos */}
+        {/* Total Gasto em Categorias */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Categoria - Jogos
+              Total Gasto em Categorias
             </CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
+            <TrendingDown className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              R$ {totalGamesAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              R$ {totalSpent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Categoria de jogos
+              Soma de todas as despesas por categoria
             </p>
           </CardContent>
         </Card>
 
-        {/* Categoria Alimentação */}
+        {/* Saldo Disponível */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Categoria - Alimentação
+              Saldo Disponível
             </CardTitle>
             <Tag className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              R$ {totalFoodAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+            <div className={`text-2xl font-bold ${
+              totalMaxBudgets - totalSpent >= 0 ? 'text-green-600' : 'text-red-600'
+            }`}>
+              R$ {(totalMaxBudgets - totalSpent).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
-              Categoria de alimentação
-            </p>
-          </CardContent>
-        </Card>
-
-        {/* Categoria Refeição */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Categoria - Refeição
-            </CardTitle>
-            <Tag className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-red-600">
-              R$ {totalMealAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Categoria de refeição
+              Orçamento restante nas categorias
             </p>
           </CardContent>
         </Card>
@@ -261,7 +273,78 @@ export default function Categories() {
         </CardHeader>
         <CardContent>
           <DataTable 
-            columns={categoriesColumns} 
+            columns={[
+              {
+                accessorKey: "name",
+                header: "Nome",
+              },
+              {
+                accessorKey: "maxBudget",
+                header: "Orçamento Máximo",
+                cell: ({ row }) => {
+                  const amount = parseFloat(row.getValue("maxBudget"))
+                  return (
+                    <div className="text-right font-medium text-blue-600">
+                      R$ {amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  )
+                },
+              },
+              {
+                id: "spent",
+                header: "Gasto",
+                cell: ({ row }) => {
+                  const category = row.original
+                  const spent = getCategoryExpenses(category.name)
+                  return (
+                    <div className="text-right font-medium text-red-600">
+                      R$ {spent.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  )
+                },
+              },
+              {
+                id: "remaining",
+                header: "Restante",
+                cell: ({ row }) => {
+                  const category = row.original
+                  const spent = getCategoryExpenses(category.name)
+                  const remaining = category.maxBudget - spent
+                  return (
+                    <div className={`text-right font-medium ${
+                      remaining >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      R$ {remaining.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    </div>
+                  )
+                },
+              },
+              {
+                id: "actions",
+                header: "Ações",
+                cell: ({ row }) => {
+                  const category = row.original
+                  return (
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEditCategory(category)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDeleteCategory(category)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )
+                },
+              },
+            ]} 
             data={categories} 
             searchKey="name"
             searchPlaceholder="Buscar categorias..."

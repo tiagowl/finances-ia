@@ -40,6 +40,9 @@ interface FinanceContextType {
   
   // Category methods
   addCategory: (category: Omit<Category, 'id'>) => void
+  updateCategory: (id: string, category: Partial<Omit<Category, 'id'>>) => void
+  deleteCategory: (id: string) => void
+  getCategoryExpenses: (categoryName: string) => number
   
   // Wish methods
   addWish: (wish: Omit<Wish, 'id'>) => void
@@ -293,12 +296,52 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     
     // Trigger: Notificação de categoria criada
     addNotification({
-      title: 'Nova Categoria Criada',
-      message: `Categoria "${category.name}" criada com orçamento de R$ ${category.budget.toFixed(2)}`,
+      title: '🏷️ Nova Categoria Criada',
+      message: `Categoria "${category.name}" criada com orçamento máximo de R$ ${category.maxBudget.toFixed(2)}`,
       type: 'info',
       timestamp: new Date().toISOString(),
       isRead: false
     })
+  }
+
+  const updateCategory = (id: string, updatedData: Partial<Omit<Category, 'id'>>) => {
+    setCategories(prev => prev.map(category => 
+      category.id === id ? { ...category, ...updatedData } : category
+    ))
+    
+    // Trigger: Notificação de categoria atualizada
+    const category = categories.find(c => c.id === id)
+    if (category) {
+      addNotification({
+        title: '✏️ Categoria Atualizada',
+        message: `Categoria "${category.name}" foi atualizada`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
+  }
+
+  const deleteCategory = (id: string) => {
+    const category = categories.find(c => c.id === id)
+    setCategories(prev => prev.filter(c => c.id !== id))
+    
+    // Trigger: Notificação de categoria excluída
+    if (category) {
+      addNotification({
+        title: '🗑️ Categoria Excluída',
+        message: `Categoria "${category.name}" foi excluída`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
+  }
+
+  const getCategoryExpenses = (categoryName: string): number => {
+    return transactions
+      .filter(t => t.type === 'expense' && t.category === categoryName)
+      .reduce((sum, t) => sum + t.amount, 0)
   }
 
 
@@ -634,6 +677,9 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     
     // Category methods
     addCategory,
+    updateCategory,
+    deleteCategory,
+    getCategoryExpenses,
     
     // Wish methods
     addWish,
