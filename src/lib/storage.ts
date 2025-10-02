@@ -50,7 +50,26 @@ export const saveMonthlyExpenses = (monthlyExpenses: MonthlyExpense[]): void => 
 }
 
 export const loadMonthlyExpenses = (): MonthlyExpense[] => {
-  return loadFromStorage(STORAGE_KEYS.MONTHLY_EXPENSES, [])
+  const expenses = loadFromStorage(STORAGE_KEYS.MONTHLY_EXPENSES, [])
+  
+  // Migração de dados antigos: adicionar dayOfMonth se não existir
+  const migratedExpenses = expenses.map((expense: any) => {
+    if (!expense.dayOfMonth) {
+      // Se não tem dayOfMonth, usar o dia 15 como padrão
+      return {
+        ...expense,
+        dayOfMonth: 15
+      }
+    }
+    return expense
+  })
+  
+  // Salvar dados migrados se houve mudança
+  if (migratedExpenses.some((expense, index) => expense.dayOfMonth !== expenses[index]?.dayOfMonth)) {
+    saveToStorage(STORAGE_KEYS.MONTHLY_EXPENSES, migratedExpenses)
+  }
+  
+  return migratedExpenses
 }
 
 export const saveCategories = (categories: Category[]): void => {

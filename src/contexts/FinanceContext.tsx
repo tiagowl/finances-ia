@@ -91,7 +91,9 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
   useEffect(() => {
     setTransactions(loadTransactions())
     setMonthlyIncomes(loadMonthlyIncomes())
-    setMonthlyExpenses(loadMonthlyExpenses())
+    const loadedExpenses = loadMonthlyExpenses()
+    console.log('Loaded monthly expenses:', loadedExpenses)
+    setMonthlyExpenses(loadedExpenses)
     setCategories(loadCategories())
     setWishes(loadWishes())
     setNotifications(loadNotifications())

@@ -49,6 +49,14 @@ export default function MonthlyExpenses() {
   const [isMonthlyExpenseSheetOpen, setIsMonthlyExpenseSheetOpen] = useState(false)
   const [editingExpense, setEditingExpense] = useState<MonthlyExpense | null>(null)
   const { monthlyExpenses, addMonthlyExpense, updateMonthlyExpense, deleteMonthlyExpense, getTotalMonthlyExpenses } = useFinance()
+  
+  // Função de debug para limpar dados antigos
+  const clearOldData = () => {
+    if (confirm('Isso irá limpar todas as despesas mensais. Continuar?')) {
+      localStorage.removeItem('finances-monthly-expenses')
+      window.location.reload()
+    }
+  }
 
   const totalMonthlyExpenses = getTotalMonthlyExpenses()
 
@@ -65,28 +73,37 @@ export default function MonthlyExpenses() {
 
   // Função para submeter o formulário de despesa mensal
   const onSubmitMonthlyExpense = (values: MonthlyExpenseFormValues) => {
-    if (editingExpense) {
-      // Atualizar despesa existente
-      updateMonthlyExpense(editingExpense.id, {
-        name: values.name,
-        amount: parseFloat(values.amount),
-        dayOfMonth: parseInt(values.dayOfMonth),
-        cancellationLink: values.cancellationLink,
-      })
-    } else {
-      // Criar nova despesa
-      addMonthlyExpense({
-        name: values.name,
-        amount: parseFloat(values.amount),
-        dayOfMonth: parseInt(values.dayOfMonth),
-        cancellationLink: values.cancellationLink,
-        isActive: true
-      })
-    }
+    console.log('Form submitted with values:', values)
+    console.log('Editing expense:', editingExpense)
     
-    monthlyExpenseForm.reset()
-    setIsMonthlyExpenseSheetOpen(false)
-    setEditingExpense(null)
+    try {
+      if (editingExpense) {
+        // Atualizar despesa existente
+        console.log('Updating expense with ID:', editingExpense.id)
+        updateMonthlyExpense(editingExpense.id, {
+          name: values.name,
+          amount: parseFloat(values.amount),
+          dayOfMonth: parseInt(values.dayOfMonth),
+          cancellationLink: values.cancellationLink,
+        })
+      } else {
+        // Criar nova despesa
+        console.log('Creating new expense')
+        addMonthlyExpense({
+          name: values.name,
+          amount: parseFloat(values.amount),
+          dayOfMonth: parseInt(values.dayOfMonth),
+          cancellationLink: values.cancellationLink,
+          isActive: true
+        })
+      }
+      
+      monthlyExpenseForm.reset()
+      setIsMonthlyExpenseSheetOpen(false)
+      setEditingExpense(null)
+    } catch (error) {
+      console.error('Error submitting form:', error)
+    }
   }
 
   // Função para abrir o drawer de edição
@@ -124,14 +141,22 @@ export default function MonthlyExpenses() {
             Visualize suas despesas mensais
           </p>
         </div>
-        <Sheet open={isMonthlyExpenseSheetOpen} onOpenChange={handleCloseSheet}>
-          <SheetTrigger asChild>
-            <Button className="bg-black hover:bg-gray-800">
-              <Plus className="h-4 w-4 mr-2" />
-              Cadastrar Despesa Mensal
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+        <div className="flex gap-2">
+          <Button 
+            onClick={clearOldData}
+            variant="outline"
+            size="sm"
+          >
+            🗑️ Limpar Dados (Debug)
+          </Button>
+          <Sheet open={isMonthlyExpenseSheetOpen} onOpenChange={handleCloseSheet}>
+            <SheetTrigger asChild>
+              <Button className="bg-black hover:bg-gray-800">
+                <Plus className="h-4 w-4 mr-2" />
+                Cadastrar Despesa Mensal
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[400px] sm:w-[540px]">
             <SheetHeader>
               <SheetTitle>{editingExpense ? 'Editar Despesa Mensal' : 'Cadastrar Nova Despesa Mensal'}</SheetTitle>
               <SheetDescription>
@@ -225,7 +250,8 @@ export default function MonthlyExpenses() {
               </form>
             </Form>
           </SheetContent>
-        </Sheet>
+          </Sheet>
+        </div>
       </div>
       
       {/* Card de Estatística */}
