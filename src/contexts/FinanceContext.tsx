@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
-import { Transaction, MonthlyIncome, MonthlyExpense, Category, Wish, Notification } from '@/types'
+import { Transaction, MonthlyIncome, MonthlyExpense, Category, Wish, Notification, ShoppingItem } from '@/types'
 import {
   saveTransactions,
   loadTransactions,
@@ -13,6 +13,8 @@ import {
   loadWishes,
   saveNotifications,
   loadNotifications,
+  saveShoppingList,
+  loadShoppingList,
   generateId
 } from '@/lib/storage'
 
@@ -24,6 +26,7 @@ interface FinanceContextType {
   categories: Category[]
   wishes: Wish[]
   notifications: Notification[]
+  shoppingList: ShoppingItem[]
   
   // Transaction methods
   addTransaction: (transaction: Omit<Transaction, 'id'>) => void
@@ -52,6 +55,12 @@ interface FinanceContextType {
   deleteNotification: (id: string) => void
   markNotificationAsRead: (id: string) => void
   markAllNotificationsAsRead: () => void
+  
+  // Shopping List methods
+  addShoppingItem: (shoppingItem: Omit<ShoppingItem, 'id'>) => void
+  updateShoppingItem: (id: string, shoppingItem: Partial<Omit<ShoppingItem, 'id'>>) => void
+  deleteShoppingItem: (id: string) => void
+  toggleShoppingItemPurchased: (id: string) => void
   
   // Monitoring methods
   checkBudgetAlerts: () => void
@@ -91,6 +100,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
   const [categories, setCategories] = useState<Category[]>([])
   const [wishes, setWishes] = useState<Wish[]>([])
   const [notifications, setNotifications] = useState<Notification[]>([])
+  const [shoppingList, setShoppingList] = useState<ShoppingItem[]>([])
 
   // Load data from localStorage on mount
   useEffect(() => {
@@ -100,6 +110,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     setCategories(loadCategories())
     setWishes(loadWishes())
     setNotifications(loadNotifications())
+    setShoppingList(loadShoppingList())
   }, [])
 
   // Save data to localStorage whenever state changes
@@ -126,6 +137,10 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
   useEffect(() => {
     saveNotifications(notifications)
   }, [notifications])
+
+  useEffect(() => {
+    saveShoppingList(shoppingList)
+  }, [shoppingList])
 
   // Check monthly expense due dates when app loads and when monthly expenses change
   useEffect(() => {
@@ -653,6 +668,77 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     return notifications.filter(n => !n.isRead).length
   }
 
+  // Shopping List methods
+  const addShoppingItem = (shoppingItem: Omit<ShoppingItem, 'id'>) => {
+    const newShoppingItem: ShoppingItem = {
+      ...shoppingItem,
+      id: generateId()
+    }
+    setShoppingList(prev => [...prev, newShoppingItem])
+    
+    // Trigger: Notificação de item adicionado
+    addNotification({
+      title: '🛒 Item Adicionado à Lista',
+      message: `"${shoppingItem.name}" foi adicionado à lista de compras`,
+      type: 'info',
+      timestamp: new Date().toISOString(),
+      isRead: false
+    })
+  }
+
+  const updateShoppingItem = (id: string, updatedData: Partial<Omit<ShoppingItem, 'id'>>) => {
+    setShoppingList(prev => prev.map(item => 
+      item.id === id ? { ...item, ...updatedData } : item
+    ))
+    
+    // Trigger: Notificação de item atualizado
+    const item = shoppingList.find(i => i.id === id)
+    if (item) {
+      addNotification({
+        title: '✏️ Item Atualizado',
+        message: `"${item.name}" foi atualizado na lista de compras`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
+  }
+
+  const deleteShoppingItem = (id: string) => {
+    const item = shoppingList.find(i => i.id === id)
+    setShoppingList(prev => prev.filter(i => i.id !== id))
+    
+    // Trigger: Notificação de item excluído
+    if (item) {
+      addNotification({
+        title: '🗑️ Item Removido',
+        message: `"${item.name}" foi removido da lista de compras`,
+        type: 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
+  }
+
+  const toggleShoppingItemPurchased = (id: string) => {
+    const item = shoppingList.find(i => i.id === id)
+    if (item) {
+      const newPurchasedState = !item.isPurchased
+      setShoppingList(prev => prev.map(i => 
+        i.id === id ? { ...i, isPurchased: newPurchasedState } : i
+      ))
+      
+      // Trigger: Notificação de status alterado
+      addNotification({
+        title: newPurchasedState ? '✅ Item Comprado' : '📝 Item Desmarcado',
+        message: `"${item.name}" foi ${newPurchasedState ? 'marcado como comprado' : 'desmarcado'}`,
+        type: newPurchasedState ? 'success' : 'info',
+        timestamp: new Date().toISOString(),
+        isRead: false
+      })
+    }
+  }
+
   const value: FinanceContextType = {
     // Data
     transactions,
@@ -661,6 +747,7 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     categories,
     wishes,
     notifications,
+    shoppingList,
     
     // Transaction methods
     addTransaction,
@@ -689,6 +776,12 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     deleteNotification,
     markNotificationAsRead,
     markAllNotificationsAsRead,
+    
+    // Shopping List methods
+    addShoppingItem,
+    updateShoppingItem,
+    deleteShoppingItem,
+    toggleShoppingItemPurchased,
     
     // Monitoring methods
     checkBudgetAlerts,

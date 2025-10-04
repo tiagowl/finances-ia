@@ -28,6 +28,7 @@ import {
   CalendarDays,
   Tag,
   Heart,
+  ShoppingCart,
   Bell,
   AlertCircle,
   CheckCircle,
@@ -43,7 +44,8 @@ import {
   MonthlyIncomes,
   MonthlyExpenses,
   Categories,
-  Wishes
+  Wishes,
+  ShoppingList
 } from "@/pages"
 import { FinanceProvider, useFinance } from "@/contexts/FinanceContext"
 
@@ -91,6 +93,8 @@ function AppContent() {
         return <Categories />
       case 'wishes':
         return <Wishes />
+      case 'shopping-list':
+        return <ShoppingList />
       default:
         return <div>Página não encontrada</div>
     }
@@ -181,6 +185,15 @@ function AppContent() {
                     <span>Desejos</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton 
+                    isActive={currentPage === 'shopping-list'}
+                    onClick={() => setCurrentPage('shopping-list')}
+                  >
+                    <ShoppingCart className="h-4 w-4" />
+                    <span>Lista de Compras</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
               </SidebarMenu>
             </SidebarGroupContent>
           </SidebarGroup>
@@ -236,6 +249,7 @@ function AppContent() {
                currentPage === 'monthly-expenses' ? 'Despesas Mensais' :
                currentPage === 'categories' ? 'Categorias' :
                currentPage === 'wishes' ? 'Desejos' :
+               currentPage === 'shopping-list' ? 'Lista de Compras' :
                'Finances IA'}
             </h1>
           </div>

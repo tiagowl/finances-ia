@@ -54,3 +54,11 @@ export interface Notification {
   timestamp: string
   isRead: boolean
 }
+
+export interface ShoppingItem {
+  id: string
+  name: string
+  price: number
+  isPurchased: boolean
+  createdAt: string
+}

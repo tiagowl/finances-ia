@@ -1,4 +1,4 @@
-import { Transaction, MonthlyIncome, MonthlyExpense, Category, Wish, Notification } from "@/types"
+import { Transaction, MonthlyIncome, MonthlyExpense, Category, Wish, Notification, ShoppingItem } from "@/types"
 
 const STORAGE_KEYS = {
   TRANSACTIONS: 'finances-transactions',
@@ -6,7 +6,8 @@ const STORAGE_KEYS = {
   MONTHLY_EXPENSES: 'finances-monthly-expenses',
   CATEGORIES: 'finances-categories',
   WISHES: 'finances-wishes',
-  NOTIFICATIONS: 'finances-notifications'
+  NOTIFICATIONS: 'finances-notifications',
+  SHOPPING_LIST: 'finances-shopping-list'
 }
 
 // Generic storage functions
@@ -123,6 +124,14 @@ export const saveNotifications = (notifications: Notification[]): void => {
 
 export const loadNotifications = (): Notification[] => {
   return loadFromStorage(STORAGE_KEYS.NOTIFICATIONS, [])
+}
+
+export const saveShoppingList = (shoppingList: ShoppingItem[]): void => {
+  saveToStorage(STORAGE_KEYS.SHOPPING_LIST, shoppingList)
+}
+
+export const loadShoppingList = (): ShoppingItem[] => {
+  return loadFromStorage(STORAGE_KEYS.SHOPPING_LIST, [])
 }
 
 // Helper function to generate unique IDs
