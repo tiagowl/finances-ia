@@ -123,22 +123,22 @@ export default function ShoppingList() {
     .reduce((sum, item) => sum + item.price, 0)
 
   return (
-    <div className="flex flex-1 flex-col gap-6 p-6">
-      <div className="flex items-center justify-between">
+    <div className="flex flex-1 flex-col gap-4 p-4 sm:gap-6 sm:p-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Lista de Compras</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl font-bold sm:text-3xl">Lista de Compras</h1>
+          <p className="text-muted-foreground text-sm sm:text-base">
             Gerencie sua lista de compras
           </p>
         </div>
         <Sheet open={isShoppingItemSheetOpen} onOpenChange={handleSheetOpenChange}>
           <SheetTrigger asChild>
-            <Button className="bg-black hover:bg-gray-800">
+            <Button className="bg-black hover:bg-gray-800 w-full sm:w-auto">
               <Plus className="h-4 w-4 mr-2" />
               Adicionar Item
             </Button>
           </SheetTrigger>
-          <SheetContent side="right" className="w-[400px] sm:w-[540px]">
+          <SheetContent side="right" className="w-full sm:w-[400px] md:w-[540px]">
             <SheetHeader>
               <SheetTitle>{editingItem ? 'Editar Item' : 'Adicionar Novo Item'}</SheetTitle>
               <SheetDescription>
@@ -148,7 +148,7 @@ export default function ShoppingList() {
               </SheetDescription>
             </SheetHeader>
             <Form {...shoppingItemForm}>
-              <form onSubmit={shoppingItemForm.handleSubmit(onSubmitShoppingItem)} className="space-y-6 p-4">
+              <form onSubmit={shoppingItemForm.handleSubmit(onSubmitShoppingItem)} className="space-y-4 p-4 sm:space-y-6">
                 <FormField
                   control={shoppingItemForm.control}
                   name="name"
@@ -180,7 +180,7 @@ export default function ShoppingList() {
                     </FormItem>
                   )}
                 />
-                <div className="flex gap-2 pt-4">
+                <div className="flex flex-col gap-2 pt-4 sm:flex-row">
                   <Button 
                     type="button" 
                     variant="outline" 
@@ -200,17 +200,17 @@ export default function ShoppingList() {
       </div>
       
       {/* Cards de Estatística */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
         {/* Total de Itens */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-xs sm:text-sm font-medium">
               Total de Itens
             </CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">
+            <div className="text-lg sm:text-2xl font-bold text-blue-600">
               {totalItems}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -222,13 +222,13 @@ export default function ShoppingList() {
         {/* Itens Comprados */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-xs sm:text-sm font-medium">
               Itens Comprados
             </CardTitle>
-            <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+            <CheckCircle2 className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">
+            <div className="text-lg sm:text-2xl font-bold text-green-600">
               {purchasedItems}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -240,13 +240,13 @@ export default function ShoppingList() {
         {/* Itens Pendentes */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-xs sm:text-sm font-medium">
               Itens Pendentes
             </CardTitle>
-            <Circle className="h-4 w-4 text-muted-foreground" />
+            <Circle className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">
+            <div className="text-lg sm:text-2xl font-bold text-orange-600">
               {pendingItems}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -258,13 +258,13 @@ export default function ShoppingList() {
         {/* Valor Total */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
+            <CardTitle className="text-xs sm:text-sm font-medium">
               Valor Total
             </CardTitle>
-            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+            <ShoppingCart className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">
+            <div className="text-lg sm:text-2xl font-bold text-purple-600">
               R$ {totalValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </div>
             <p className="text-xs text-muted-foreground">
@@ -277,12 +277,12 @@ export default function ShoppingList() {
       {/* Tabela de Itens da Lista de Compras */}
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Compras</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-lg sm:text-xl">Lista de Compras</CardTitle>
+          <CardDescription className="text-sm">
             Todos os itens da sua lista de compras
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0 sm:p-6">
           <DataTable 
             columns={[
               {
@@ -334,20 +334,24 @@ export default function ShoppingList() {
                 cell: ({ row }) => {
                   const item = row.original
                   return (
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleEditItem(item)}
+                        className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3"
                       >
-                        <Edit className="h-4 w-4" />
+                        <Edit className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline ml-1">Editar</span>
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => handleDeleteItem(item)}
+                        className="h-8 w-8 p-0 sm:h-9 sm:w-auto sm:px-3"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3 sm:h-4 sm:w-4" />
+                        <span className="hidden sm:inline ml-1">Excluir</span>
                       </Button>
                     </div>
                   )

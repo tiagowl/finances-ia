@@ -238,10 +238,10 @@ function AppContent() {
       </Sidebar>
       
       <SidebarInset>
-        <header className="flex h-16 shrink-0 items-center gap-2 border-b px-4">
+        <header className="flex h-14 sm:h-16 shrink-0 items-center gap-2 border-b px-3 sm:px-4">
           <SidebarTrigger className="-ml-1" />
-          <div className="flex items-center gap-2 flex-1">
-            <h1 className="text-lg font-semibold">
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <h1 className="text-base sm:text-lg font-semibold truncate">
               {currentPage === 'dashboard' ? 'Dashboard' : 
                currentPage === 'incomes' ? 'Receitas' :
                currentPage === 'expenses' ? 'Despesas' :
@@ -255,61 +255,62 @@ function AppContent() {
           </div>
           
           {/* Componente de Notificações */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="relative">
-                  <Bell className="h-5 w-5" />
+                <Button variant="ghost" size="sm" className="relative h-8 w-8 sm:h-9 sm:w-auto sm:px-3">
+                  <Bell className="h-4 w-4 sm:h-5 sm:w-5" />
+                  <span className="hidden sm:inline ml-1">Notificações</span>
                   {unreadNotificationsCount > 0 && (
                     <Badge 
                       variant="destructive" 
-                      className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs"
+                      className="absolute -top-1 -right-1 h-4 w-4 sm:h-5 sm:w-5 rounded-full p-0 flex items-center justify-center text-xs"
                     >
                       {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                     </Badge>
                   )}
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
-                <div className="flex items-center justify-between p-4 border-b">
-                  <h3 className="font-semibold">Notificações</h3>
+              <PopoverContent className="w-72 sm:w-80 p-0" align="end">
+                <div className="flex items-center justify-between p-3 sm:p-4 border-b">
+                  <h3 className="font-semibold text-sm sm:text-base">Notificações</h3>
                   {unreadNotificationsCount > 0 && (
                     <Button 
                       variant="ghost" 
                       size="sm" 
                       onClick={markAllNotificationsAsRead}
-                      className="text-xs"
+                      className="text-xs h-7 px-2"
                     >
                       Marcar todas como lidas
                     </Button>
                   )}
                 </div>
-                <div className="max-h-96 overflow-y-auto">
+                <div className="max-h-80 sm:max-h-96 overflow-y-auto">
                   {notifications.length === 0 ? (
-                    <div className="p-4 text-center text-muted-foreground">
+                    <div className="p-3 sm:p-4 text-center text-muted-foreground text-sm">
                       Nenhuma notificação
                     </div>
                   ) : (
                     notifications.map((notification) => (
                       <div
                         key={notification.id}
-                        className={`p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${
+                        className={`p-3 sm:p-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors ${
                           !notification.isRead ? 'bg-blue-50/50' : ''
                         }`}
                       >
-                        <div className="flex items-start gap-3">
+                        <div className="flex items-start gap-2 sm:gap-3">
                           <div className="flex-shrink-0 mt-0.5">
                             {getNotificationIcon(notification.type)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-start justify-between gap-2">
-                              <div className="flex-1">
-                                <p className={`text-sm font-medium ${
+                            <div className="flex items-start justify-between gap-1 sm:gap-2">
+                              <div className="flex-1 min-w-0">
+                                <p className={`text-xs sm:text-sm font-medium truncate ${
                                   !notification.isRead ? 'text-foreground' : 'text-muted-foreground'
                                 }`}>
                                   {notification.title}
                                 </p>
-                                <p className="text-xs text-muted-foreground mt-1">
+                                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">
                                   {notification.message}
                                 </p>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -322,7 +323,7 @@ function AppContent() {
                                     variant="ghost"
                                     size="sm"
                                     onClick={() => markNotificationAsRead(notification.id)}
-                                    className="h-6 w-6 p-0"
+                                    className="h-5 w-5 sm:h-6 sm:w-6 p-0"
                                   >
                                     <CheckCircle className="h-3 w-3" />
                                   </Button>
@@ -331,7 +332,7 @@ function AppContent() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => deleteNotification(notification.id)}
-                                  className="h-6 w-6 p-0"
+                                  className="h-5 w-5 sm:h-6 sm:w-6 p-0"
                                 >
                                   <X className="h-3 w-3" />
                                 </Button>
