@@ -173,6 +173,73 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
     const unsubscribeNotifications = subscribeToNotifications(setNotifications)
     const unsubscribeShoppingList = subscribeToShoppingList(setShoppingList)
 
+    // Setup localStorage change listener for synchronization between tabs
+    const handleStorageChange = async (e: StorageEvent) => {
+      if (e.key?.startsWith('finances-')) {
+        // Reload data when localStorage changes
+        const [
+          transactionsData,
+          monthlyIncomesData,
+          monthlyExpensesData,
+          categoriesData,
+          wishesData,
+          notificationsData,
+          shoppingListData
+        ] = await Promise.all([
+          loadTransactions(),
+          loadMonthlyIncomes(),
+          loadMonthlyExpenses(),
+          loadCategories(),
+          loadWishes(),
+          loadNotifications(),
+          loadShoppingList()
+        ])
+
+        setTransactions(transactionsData)
+        setMonthlyIncomes(monthlyIncomesData)
+        setMonthlyExpenses(monthlyExpensesData)
+        setCategories(categoriesData)
+        setWishes(wishesData)
+        setNotifications(notificationsData)
+        setShoppingList(shoppingListData)
+      }
+    }
+
+    // Setup custom event listener for localStorage changes in the same tab
+    const handleLocalStorageChange = async (e: Event) => {
+      const customEvent = e as CustomEvent<{ key: string }>
+      const key = customEvent.detail?.key
+      
+      if (key?.startsWith('finances-')) {
+        // Reload specific data based on the key
+        if (key === 'finances-transactions') {
+          const data = await loadTransactions()
+          setTransactions(data)
+        } else if (key === 'finances-monthly-incomes') {
+          const data = await loadMonthlyIncomes()
+          setMonthlyIncomes(data)
+        } else if (key === 'finances-monthly-expenses') {
+          const data = await loadMonthlyExpenses()
+          setMonthlyExpenses(data)
+        } else if (key === 'finances-categories') {
+          const data = await loadCategories()
+          setCategories(data)
+        } else if (key === 'finances-wishes') {
+          const data = await loadWishes()
+          setWishes(data)
+        } else if (key === 'finances-notifications') {
+          const data = await loadNotifications()
+          setNotifications(data)
+        } else if (key === 'finances-shopping-list') {
+          const data = await loadShoppingList()
+          setShoppingList(data)
+        }
+      }
+    }
+
+    window.addEventListener('storage', handleStorageChange)
+    window.addEventListener('localStorageChange', handleLocalStorageChange)
+
     return () => {
       unsubscribeTransactions()
       unsubscribeMonthlyIncomes()
@@ -181,6 +248,8 @@ export const FinanceProvider: React.FC<FinanceProviderProps> = ({ children }) =>
       unsubscribeWishes()
       unsubscribeNotifications()
       unsubscribeShoppingList()
+      window.removeEventListener('storage', handleStorageChange)
+      window.removeEventListener('localStorageChange', handleLocalStorageChange)
     }
   }, [])
 

@@ -149,7 +149,13 @@ export default function MonthlyExpenses() {
           >
             🗑️ Limpar Dados (Debug)
           </Button>
-          <Sheet open={isMonthlyExpenseSheetOpen} onOpenChange={handleCloseSheet}>
+          <Sheet open={isMonthlyExpenseSheetOpen} onOpenChange={(open) => {
+            if (!open) {
+              handleCloseSheet()
+            } else {
+              setIsMonthlyExpenseSheetOpen(true)
+            }
+          }}>
             <SheetTrigger asChild>
               <Button className="bg-black hover:bg-gray-800">
                 <Plus className="h-4 w-4 mr-2" />

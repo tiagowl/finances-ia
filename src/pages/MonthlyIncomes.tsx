@@ -144,7 +144,13 @@ export default function MonthlyIncomes() {
           >
             🗑️ Limpar Dados (Debug)
           </Button>
-          <Sheet open={isMonthlyIncomeSheetOpen} onOpenChange={handleCloseSheet}>
+          <Sheet open={isMonthlyIncomeSheetOpen} onOpenChange={(open) => {
+            if (!open) {
+              handleCloseSheet()
+            } else {
+              setIsMonthlyIncomeSheetOpen(true)
+            }
+          }}>
           <SheetTrigger asChild>
             <Button className="bg-black hover:bg-gray-800">
               <Plus className="h-4 w-4 mr-2" />
